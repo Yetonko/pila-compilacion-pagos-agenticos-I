@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Los dos caminos del pago agéntico</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap">
+<style>
+/* Layout: recorrido guiado. La pila crece paso a paso: los pasos hechos se pliegan arriba, el actual se abre con su interacción y la columna «Alice» a la derecha; los pendientes se ven atenuados debajo. */
+:root{
+--bg:#f4f5f7;--paper:#ffffff;--ink:#18202b;--muted:#586374;--line:#dde1e7;--code:#eef1f5;--accent:#0f5f8c;--accent-bg:#e4eff7;
+--alice:#b23f17;--alice-bg:#fbe9e1;--some:#8a5a00;--some-bg:#fbf1dc;--no:#7f8896;--no-bg:#f0f2f5;
+--ok:#1d743a;--ok-bg:#e3f2e7;--bad:#ad2a2a;--bad-bg:#fbe5e5;
+--f-display:"Newsreader",Georgia,"Times New Roman",serif;--f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+--bg:#11161d;--paper:#18202a;--ink:#e7ecf2;--muted:#9ba7b6;--line:#2b3542;--code:#1f2934;--accent:#6cb6e3;--accent-bg:#14283a;
+--alice:#f2a585;--alice-bg:#3c2016;--some:#e5c27a;--some-bg:#33290f;--no:#7d8897;--no-bg:#1d252f;
+--ok:#7fd49a;--ok-bg:#16301f;--bad:#f19a9a;--bad-bg:#3d1a1a;color-scheme:dark}}
+:root[data-theme="dark"]{
+--bg:#11161d;--paper:#18202a;--ink:#e7ecf2;--muted:#9ba7b6;--line:#2b3542;--code:#1f2934;--accent:#6cb6e3;--accent-bg:#14283a;
+--alice:#f2a585;--alice-bg:#3c2016;--some:#e5c27a;--some-bg:#33290f;--no:#7d8897;--no-bg:#1d252f;
+--ok:#7fd49a;--ok-bg:#16301f;--bad:#f19a9a;--bad-bg:#3d1a1a;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.6;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 72px}
+.wrap{max-width:1080px;margin:0 auto}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:600;margin:0 0 8px}
+h1{font-family:var(--f-display);font-weight:600;font-size:clamp(30px,4.6vw,44px);line-height:1.1;margin:0 0 12px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:26px;line-height:1.2;margin:0 0 6px;text-wrap:balance}
+h3{margin:0}
+h4{font-size:18px;font-weight:600;margin:4px 0 6px;line-height:1.3;text-wrap:balance}
+p{margin:0 0 8px}
+.intro{color:var(--muted);font-size:17px;max-width:70ch}
+code{font-family:var(--f-mono);font-size:.86em;background:var(--code);padding:1px 5px;border-radius:4px}
+pre{font-family:var(--f-mono);font-size:12.5px;background:var(--code);border-radius:8px;padding:10px 12px;margin:6px 0 0;overflow-x:auto;white-space:pre-wrap;word-break:break-all;line-height:1.55}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin:18px 0 8px;font-size:14px;color:var(--muted)}
+.legend .pill{margin-right:6px}
+.pill{display:inline-block;font-size:12.5px;font-weight:600;padding:2px 10px;border-radius:999px;white-space:nowrap;border:1.5px solid transparent}
+.s-act{--c:var(--alice);--cb:var(--alice-bg)}.s-see{--c:var(--alice);--cb:transparent}.s-some{--c:var(--some);--cb:var(--some-bg)}.s-no{--c:var(--no);--cb:var(--no-bg)}
+.pill.s-act{background:var(--alice);color:var(--paper)}.pill.s-see{color:var(--alice);border-color:var(--alice)}.pill.s-some{color:var(--some);border-color:var(--some);background:var(--some-bg)}.pill.s-no{color:var(--no);background:var(--no-bg)}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 22px;border-bottom:1px solid var(--line);padding-bottom:12px}
+.tabs a{font-size:14.5px;font-weight:500;text-decoration:none;color:var(--muted);padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--paper)}
+.tabs a:hover{color:var(--ink);border-color:var(--accent)}
+.tabs a[aria-current="true"]{color:var(--paper);background:var(--accent);border-color:var(--accent)}
+a:focus-visible,summary:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.panel{margin-bottom:48px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:14px 0 14px}
+.rail{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.dot{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;font-size:12.5px;font-weight:600;border:1.5px solid var(--c);color:var(--c);background:var(--cb);opacity:.35}
+.dot.s-act{background:var(--alice);color:var(--paper)}
+.dot.done,.dot.cur{opacity:1}
+.dot.cur{box-shadow:0 0 0 3px var(--accent)}
+button{font-family:var(--f-body);font-size:14px;font-weight:500;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--paper)}
+button.primary:hover{filter:brightness(1.08)}
+button.danger{color:var(--bad);border-color:var(--bad)}
+.ui button{margin:6px 6px 0 0}
+.tools{display:flex;gap:8px;flex-wrap:wrap}
+.band-t{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:16px 0 8px}
+.flow{display:flex;flex-direction:column;gap:8px}
+.done-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+.done-row .t{font-weight:600;font-size:14.5px}
+.done-row .s{font-size:13.5px;color:var(--muted)}
+.done-row details{grid-column:1/-1}
+.done-row summary{font-size:13px;color:var(--accent);cursor:pointer}
+.okmark{color:var(--ok);font-weight:700}
+.step{display:grid;grid-template-columns:minmax(0,1fr);background:var(--paper);border:2px solid var(--accent);border-radius:12px;overflow:hidden;scroll-margin-top:16px}
+@media (min-width:780px){.step{grid-template-columns:minmax(0,1fr) 270px}}
+.main{padding:16px 18px;min-width:0}
+.head{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.num{font-family:var(--f-mono);font-size:13px;font-weight:500;color:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:0 7px}
+.actor{font-size:13px;color:var(--muted)}
+.k{display:block;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:1px}
+.act{margin:12px 0 4px;padding:12px 14px;border-radius:10px;background:var(--accent-bg)}
+.act.alice-do{background:var(--alice-bg)}
+.act .k{color:var(--accent)}
+.act.alice-do .k{color:var(--alice)}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:10px;margin:6px 0 10px}
+label{display:block;font-size:13px;color:var(--muted);margin:0 0 3px}
+input[type=text],input[type=number],input[type=date],input[type=password],select{width:100%;font-family:var(--f-body);font-size:15px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink)}
+.chk{display:flex;gap:8px;align-items:flex-start;font-size:14.5px;margin:6px 0}
+.chk input{margin-top:5px;accent-color:var(--accent)}
+.err{font-size:13px;color:var(--bad);margin:4px 0 0;min-height:0}
+.res{margin-top:10px}
+.checks{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.checks li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;font-size:14.5px;align-items:start}
+.checks .m{font-weight:700}
+.checks .ok .m{color:var(--ok)}.checks .bad .m{color:var(--bad)}
+.vt{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:3px 12px;margin:6px 0 4px;padding:8px 10px;background:var(--code);border-radius:8px;font-size:13px}
+.vt dt{color:var(--muted);font-weight:600}
+.vt dd{margin:0;font-family:var(--f-mono);font-size:12px;word-break:break-all}
+@media (max-width:520px){.vt{grid-template-columns:minmax(0,1fr)}.vt dd{margin-bottom:4px}}
+.checks small{display:block;font-family:var(--f-mono);font-size:12px;color:var(--muted);word-break:break-all}
+.msg{padding:10px 12px;border-radius:8px;font-size:14.5px;margin-top:10px}
+.msg.ok{background:var(--ok-bg);color:var(--ok)}.msg.bad{background:var(--bad-bg);color:var(--bad)}
+.bank{border:1px solid var(--line);border-radius:12px;background:var(--paper);padding:14px;margin-top:6px}
+.bank .bt{font-weight:600;font-size:15px;margin-bottom:8px}
+.offer{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:6px 0;background:var(--paper);cursor:pointer}
+.offer input{accent-color:var(--accent)}
+.offer b{font-variant-numeric:tabular-nums}
+details.more{margin-top:10px;font-size:14.5px}
+details.more summary{cursor:pointer;color:var(--accent);font-size:13.5px;font-weight:500}
+details.more p{margin-top:8px}
+.alice{padding:16px 18px;background:var(--cb);border-top:1px solid var(--line)}
+@media (min-width:780px){.alice{border-top:0;border-left:3px solid var(--c)}}
+.alice.s-see{border-left-style:dashed}
+.alice .who{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--c)}
+.alice .state{display:block;font-family:var(--f-display);font-size:24px;font-weight:600;color:var(--c);line-height:1.2;margin:2px 0 4px}
+.alice.s-no .state{font-family:var(--f-body);font-size:16px}
+.alice p{font-size:14.5px;margin:0}
+.alice.s-no p{color:var(--muted)}
+.pending{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.pending div{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;border:1px dashed var(--line);border-radius:10px;padding:7px 12px;font-size:14px;color:var(--muted)}
+.end{background:var(--ok-bg);color:var(--ok);border-radius:12px;padding:14px 16px;font-weight:600}
+.end span{font-weight:400;display:block;margin-top:4px}
+table.led{border-collapse:collapse;width:100%;font-size:14px;margin-top:8px}
+table.led th,table.led td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+table.led th{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.tw{overflow-x:auto;background:var(--paper);border:1px solid var(--line);border-radius:12px}
+table.cmpt{border-collapse:collapse;width:100%;min-width:640px;font-size:14.5px}
+table.cmpt th,table.cmpt td{text-align:left;vertical-align:top;padding:10px 14px;border-bottom:1px solid var(--line)}
+table.cmpt th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+table.cmpt tr:last-child td{border-bottom:0}
+table.cmpt td:first-child{font-weight:600;width:22%}
+.cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px;margin:14px 0 22px}
+.ccol{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.ccol h3{font-family:var(--f-display);font-size:20px;font-weight:600;margin-bottom:6px}
+.cband{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:12px 0 4px}
+.clist{list-style:none;margin:0;padding:0}
+.clist li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.clist li:last-child{border-bottom:0}
+.cn{font-family:var(--f-mono);font-size:12.5px;color:var(--accent)}
+details.all{margin-top:22px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+details.all>summary{cursor:pointer;font-weight:600}
+details.all .band-t{margin-top:18px}
+details.all .stack{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+details.all .step{border-width:1px;border-color:var(--line)}
+details.all p.chk{display:block;font-size:14.5px}
+details.all details summary{font-size:13.5px;color:var(--accent);cursor:pointer}
+.band{margin:0}
+.note{font-size:13.5px;color:var(--muted);max-width:80ch}
+footer{border-top:1px solid var(--line);margin-top:32px;padding-top:16px}
+@media (prefers-reduced-motion: no-preference){.appear{animation:appear .35s ease-out}@keyframes appear{from{opacity:.2;transform:translateY(6px)}to{opacity:1;transform:none}}}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+<p class="eyebrow">Pagos agénticos · los dos caminos</p>
+<h1>Quién hace qué cuando paga un agente</h1>
+<p class="intro">Alice quiere que su agente, AgenteBob, compre por ella. Hay dos caminos: que su banco le conceda un permiso o que el agente pague cada recurso con su propio monedero (código HTTP 402). Recorre cada camino paso a paso. Cuando le toca a Alice, actúas tú; cuando no, verás qué viaja entre las máquinas y qué se comprueba, calculado con criptografía real en tu navegador.</p>
+
+<div class="legend" aria-label="Qué hace Alice"><span><span class="pill s-act">Actúa</span>decide o firma</span><span><span class="pill s-see">Solo ve</span>está delante, pero no decide</span><span><span class="pill s-some">A veces</span>solo si el banco lo pide</span><span><span class="pill s-no">No está</span>todo ocurre sin ella</span></div>
+
+<nav class="tabs" aria-label="Caminos">
+<a href="#camino-1" data-tab="camino-1">1 · El permiso</a>
+<a href="#camino-2" data-tab="camino-2">2 · El pago como permiso (402)</a>
+<a href="#comparar" data-tab="comparar">Los dos, lado a lado</a>
+</nav>
+
+<section class="panel" id="camino-1" data-panel>
+<h2>Primer camino: el permiso</h2>
+<p class="intro">Economía delegada. El banco de Alice la autentica, recoge su consentimiento y entrega al agente un permiso limitado. El pago viaja por la red de tarjetas.</p>
+<div class="bar"><ol class="rail" id="rail-c1" aria-label="Progreso"></ol><div class="tools"><button type="button" data-reset="c1">Empezar de nuevo</button><button type="button" data-auto="c1">Completar con el ejemplo</button></div></div>
+<div class="flow" id="flow-c1" aria-live="polite"></div>
+<details class="all"><summary>Ver la pila completa sin interactuar</summary><section class="band band-antes"><h3 class="band-t">Antes · una sola vez</h3><ol class="stack"><li class="step" id="c1-1">
+<div class="main"><div class="head"><span class="num">1</span><span class="actor">Proveedor del agente → banco</span></div>
+<h4>El agente se da de alta en el banco</h4><p>El proveedor de AgenteBob lo registra en el banco de Alice: le asigna un identificador y deja guardada su clave pública, para poder reconocer sus firmas más adelante.</p><p class="chk"><span class="k">Se comprueba</span>Según el banco, quién es el proveedor del agente. No hay ningún permiso todavía.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>Registro del cliente OAuth: <code>client_id</code>, dirección de vuelta y clave pública (<code>jwks</code>). Paso 0 del simulador.</p><p><span class="k">Lectura jurídica</span>Identidad técnica del agente ante ese banco. No es un permiso ni acredita quién responde del agente.</p></details></div>
+<div class="alice s-no"><span class="who">Alice</span><span class="state">No está</span><p>No interviene. Ni siquiera lo ve: es una relación entre el proveedor del agente y el banco.</p></div></li><li class="step" id="c1-2">
+<div class="main"><div class="head"><span class="num">2</span><span class="actor">Alice → AgenteBob</span></div>
+<h4>Alice da la instrucción</h4><p>Alice le pide a su agente lo que quiere: «unas zapatillas de running, talla 42, por un máximo de 120 €».</p><p class="chk"><span class="k">Se comprueba</span>Nada todavía: es una conversación entre Alice y su agente.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>La instrucción en lenguaje natural se convertirá después en un mandato firmado.</p><p><span class="k">Lectura jurídica</span>Encargo de un mandato (art. 1709 CC): Alice fija el objeto y los límites.</p></details></div>
+<div class="alice s-act"><span class="who">Alice</span><span class="state">Actúa</span><p>Encarga la compra y fija lo que quiere y hasta cuánto.</p></div></li><li class="step" id="c1-3">
+<div class="main"><div class="head"><span class="num">3</span><span class="actor">AgenteBob → banco de Alice</span></div>
+<h4>El agente la envía a su banco</h4><p>AgenteBob prepara un secreto que se guarda y abre la web o la app del banco de Alice con lo que pide: «pagar hasta 200 € durante un mes».</p><p class="chk"><span class="k">Se comprueba</span>El banco comprueba que el agente está registrado y que la dirección de vuelta es la suya.</p>
+<details><summary>Lo técnico</summary><p><span class="k">Técnica</span>Petición de autorización OAuth con PKCE: <code>client_id</code>, <code>scope</code>, <code>state</code> y huella del secreto (<code>code_challenge</code>). Pasos 1.1 y 1.2 del simulador.</p></details></div>
+<div class="alice s-see"><span class="who">Alice</span><span class="state">Solo ve</span><p>Se encuentra en la web o la app de su banco, con la petición del agente a la vista.</p></div></li><li class="step" id="c1-4">
+<div class="main"><div class="head"><span class="num">4</span><span class="actor">Alice → banco de Alice</span></div>
+<h4>Alice se identifica y consiente</h4><p>Alice se identifica ante su banco con dos factores (por ejemplo, el móvil y la huella), acepta el permiso de pagar hasta 200 € y firma el mandato: zapatillas de running, talla 42, hasta 120 €, válido hasta el 30 de noviembre.</p><p class="chk"><span class="k">Se comprueba</span>El banco aplica la autenticación reforzada: comprueba que es Alice.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>Autenticación reforzada (SCA), pantalla de consentimiento y firma del mandato de intención con la clave del dispositivo de Alice.</p><p><span class="k">Lectura jurídica</span>Consentimiento a una serie de operaciones (art. 36 RDL 19/2018) y SCA (art. 68). Es el otorgamiento del poder.</p></details></div>
+<div class="alice s-act"><span class="who">Alice</span><span class="state">Actúa</span><p>Es el momento clave: se identifica, decide qué puede hacer el agente y lo firma. Aquí presta su consentimiento.</p></div></li><li class="step" id="c1-5">
+<div class="main"><div class="head"><span class="num">5</span><span class="actor">Banco de Alice</span></div>
+<h4>El banco comprueba al agente</h4><p>El agente vuelve al banco, esta vez por un canal directo, para recoger el permiso. El banco comprueba que es quien dice ser y que es el mismo que hizo la petición.</p><p class="chk"><span class="k">Se comprueba</span>La firma del agente, que el código de un solo uso es válido y que el agente conoce el secreto que preparó en el paso 3.</p>
+<details><summary>Lo técnico</summary><p><span class="k">Técnica</span>Aserción firmada (<code>private_key_jwt</code>), código de autorización, PKCE y prueba DPoP. Comprobaciones A1 a A4 del simulador.</p></details></div>
+<div class="alice s-no"><span class="who">Alice</span><span class="state">No está</span><p>Ya ha vuelto a la conversación con su agente.</p></div></li><li class="step" id="c1-6">
+<div class="main"><div class="head"><span class="num">6</span><span class="actor">Banco de Alice → AgenteBob</span></div>
+<h4>El banco entrega el permiso</h4><p>El banco entrega al agente un permiso firmado, que solo vale en sus manos, y una credencial sustitutiva de la tarjeta (token de red) que solo funciona para ese agente y dentro de los límites.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>Token de acceso firmado por el banco y vinculado a la clave del agente; token de red. Comprobación A5 del simulador.</p><p><span class="k">Lectura jurídica</span>El token es un título de legitimación nominativo: da al tercero «conocimiento suficiente de los poderes» (art. 1725 CC).</p></details></div>
+<div class="alice s-no"><span class="who">Alice</span><span class="state">No está</span><p>Desde ahora puede revocar el permiso en cualquier momento desde su banco.</p></div></li></ol></section><section class="band band-pago"><h3 class="band-t">En cada pago · Alice no está</h3><ol class="stack"><li class="step" id="c1-7">
+<div class="main"><div class="head"><span class="num">7</span><span class="actor">AgenteBob → comercio</span></div>
+<h4>El agente encuentra la oferta y paga</h4><p>AgenteBob encuentra unas zapatillas por 119,90 € y envía al comercio una petición de pago con cuatro pruebas: su propia firma, el permiso del banco, la prueba de que ese permiso es suyo y el mandato firmado por Alice.</p>
+<details><summary>Lo técnico</summary><p><span class="k">Técnica</span>Firma Web Bot Auth, token de acceso, prueba DPoP y mandato. Paso 3.1 del simulador.</p></details></div>
+<div class="alice s-no"><span class="who">Alice</span><span class="state">No está</span><p>No recibe ninguna pregunta.</p></div></li><li class="step" id="c1-8">
+<div class="main"><div class="head"><span class="num">8</span><span class="actor">Comercio</span></div>
+<h4>El comercio lo comprueba todo</h4><p>El comercio verifica, por este orden, quién llama, qué trae, si es suyo y si cabe en lo autorizado.</p><p class="chk"><span class="k">Se comprueba</span>Que el agente es conocido, que el permiso es auténtico y está vigente, que lo presenta su titular, que el mandato de Alice es auténtico y que 119,90 € cabe en los límites (120 € del mandato y 200 € del permiso).</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>Comprobaciones B1 a B6 del simulador.</p><p><span class="k">Lectura jurídica</span>Si la compra excediera los límites, se rechaza: el mandatario no puede traspasarlos (art. 1714 CC).</p></details></div>
+<div class="alice s-no"><span class="who">Alice</span><span class="state">No está</span><p>Todo ocurre entre máquinas.</p></div></li><li class="step" id="c1-9">
+<div class="main"><div class="head"><span class="num">9</span><span class="actor">Red de tarjetas → banco de Alice</span></div>
+<h4>La red y el banco autorizan</h4><p>La red sustituye la credencial del agente por la tarjeta real. El banco de Alice ve que paga un agente y decide aprobar, denegar o pedir una confirmación.</p><p class="chk"><span class="k">Se comprueba</span>Las reglas de riesgo del banco y, si procede, una autenticación adicional.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>Autorización ordinaria de tarjeta con el mandato de pago (agente presente, usuario ausente).</p><p><span class="k">Lectura jurídica</span>Encaje de la SCA con el ordenante ausente: operaciones iniciadas por el comercio o exención de importe reducido. Cuestión abierta.</p></details></div>
+<div class="alice s-some"><span class="who">Alice</span><span class="state">A veces</span><p>Normalmente, nada. Solo si el banco lo exige, recibe un aviso en el móvil para confirmar la compra.</p></div></li><li class="step" id="c1-10">
+<div class="main"><div class="head"><span class="num">10</span><span class="actor">Bancos</span></div>
+<h4>Se liquida el pago</h4><p>Los bancos liquidan entre sí, normalmente al día siguiente, y el cargo aparece en la cuenta de Alice.</p>
+<details><summary>Lo técnico</summary><p><span class="k">Técnica</span>Liquidación en la red de tarjetas (algunas redes ya liquidan con bancos en stablecoins, sin que el titular lo note).</p></details></div>
+<div class="alice s-no"><span class="who">Alice</span><span class="state">No está</span><p>Todo ocurre entre máquinas.</p></div></li></ol></section><section class="band band-despues"><h3 class="band-t">Después</h3><ol class="stack"><li class="step" id="c1-11">
+<div class="main"><div class="head"><span class="num">11</span><span class="actor">Alice</span></div>
+<h4>Alice revisa y, si hace falta, reclama</h4><p>Alice ve el cargo en su extracto. Si no lo reconoce, puede reclamarlo; si el permiso ya no le interesa, puede revocarlo.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>Revocación del token desde el banco; reclamación por el canal del emisor.</p><p><span class="k">Lectura jurídica</span>Operación no autorizada: devolución inmediata (art. 45 RDL 19/2018), con la prueba a cargo del banco (art. 44). Importe superior al esperado sin importe exacto autorizado: devolución en ocho semanas (arts. 48 y 49).</p></details></div>
+<div class="alice s-act"><span class="who">Alice</span><span class="state">Actúa</span><p>Revisa el cargo y conserva todas las herramientas del Derecho de pagos.</p></div></li></ol></section>
+</details>
+</section>
+
+<section class="panel" id="camino-2" data-panel>
+<h2>Segundo camino: el pago como permiso (HTTP 402)</h2>
+<p class="intro">Economía de máquinas. No hay banco que conceda permiso: el servidor pide un pago por cada recurso y el agente paga con su monedero. El ejemplo sigue x402 con monedero propio, sin custodia; las diferencias de L402 aparecen en el detalle técnico.</p>
+<div class="bar"><ol class="rail" id="rail-c2" aria-label="Progreso"></ol><div class="tools"><button type="button" data-reset="c2">Empezar de nuevo</button><button type="button" data-auto="c2">Completar con el ejemplo</button></div></div>
+<div class="flow" id="flow-c2" aria-live="polite"></div>
+<details class="all"><summary>Ver la pila completa sin interactuar</summary>
+<section class="band band-antes"><h3 class="band-t">Antes · una sola vez</h3><ol class="stack"><li class="step" id="c2-1">
+<div class="main"><div class="head"><span class="num">1</span><span class="actor">Alice → monedero del agente</span></div>
+<h4>Alice dota de fondos al agente</h4><p>Alice carga el monedero de AgenteBob con stablecoins (por ejemplo, 20 € en USDC o EURC, que compra en una plataforma que la identifica) o le concede un permiso de gasto con tope: 20 € al mes.</p><p class="chk"><span class="k">Se comprueba</span>La plataforma donde compra las stablecoins aplica KYC. En el permiso de gasto, el límite lo aplica un contrato en la blockchain.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>Monedero propio sin custodia, o permiso de gasto aplicado por contrato inteligente (ERC-7715 / ERC-7710, <i>Spend Permissions</i>).</p><p><span class="k">Lectura jurídica</span>Mandato con provisión de fondos, como la caja fija de un empleado. Sin custodia, no es el consentimiento del art. 36 RDL 19/2018: no hay proveedor de servicios de pago.</p></details></div>
+<div class="alice s-act"><span class="who">Alice</span><span class="state">Actúa</span><p>Es el momento clave: decide cuánto puede gastar el agente. Lo que no esté en el monedero no se puede gastar.</p></div></li><li class="step" id="c2-2">
+<div class="main"><div class="head"><span class="num">2</span><span class="actor">Alice → AgenteBob</span></div>
+<h4>Alice da la instrucción</h4><p>Alice le encarga una tarea: «consígueme las cotizaciones de cierre de hoy». El agente sabe que algunas fuentes cobran por consulta.</p><p class="chk"><span class="k">Se comprueba</span>Nada todavía.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>La instrucción no se firma: el límite está en los fondos o en el permiso de gasto.</p><p><span class="k">Lectura jurídica</span>Encargo del mandato. Las instrucciones son más abiertas que en el primer camino.</p></details></div>
+<div class="alice s-act"><span class="who">Alice</span><span class="state">Actúa</span><p>Encarga la tarea. No dice a quién pagar ni cuánto por cada consulta.</p></div></li></ol></section><section class="band band-pago"><h3 class="band-t">En cada pago · Alice no está</h3><ol class="stack"><li class="step" id="c2-3">
+<div class="main"><div class="head"><span class="num">3</span><span class="actor">AgenteBob → servidor</span></div>
+<h4>El agente pide el dato</h4><p>AgenteBob hace una petición normal a la API de un proveedor de datos con el que nunca ha tratado.</p>
+<details><summary>Lo técnico</summary><p><span class="k">Técnica</span>Petición HTTP ordinaria. No hay registro previo ni cuenta.</p></details></div>
+<div class="alice s-no"><span class="who">Alice</span><span class="state">No está</span><p>Todo ocurre entre máquinas.</p></div></li><li class="step" id="c2-4">
+<div class="main"><div class="head"><span class="num">4</span><span class="actor">Servidor → AgenteBob</span></div>
+<h4>El servidor responde: «Pago requerido»</h4><p>El servidor contesta con el código 402 y las condiciones: 0,05 USDC por la consulta, en tal red y a tal destinatario.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>Respuesta HTTP 402 con <code>PAYMENT-REQUIRED</code> (x402). En L402: una factura de Lightning y un token (<i>macaroon</i>).</p><p><span class="k">Lectura jurídica</span>Oferta de contrato automatizada: precio y condiciones las fija el servidor.</p></details></div>
+<div class="alice s-no"><span class="who">Alice</span><span class="state">No está</span><p>Todo ocurre entre máquinas.</p></div></li><li class="step" id="c2-5">
+<div class="main"><div class="head"><span class="num">5</span><span class="actor">AgenteBob</span></div>
+<h4>El agente decide y firma la orden</h4><p>AgenteBob comprueba que el precio cabe en sus fondos o en su permiso y firma una orden de transferencia por ese importe exacto y a ese destinatario, válida unos minutos y con un número único.</p><p class="chk"><span class="k">Se comprueba</span>El propio agente decide si paga. Nadie le pregunta.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>Firma EIP-3009 (<code>transferWithAuthorization</code>) enviada en <code>PAYMENT-SIGNATURE</code>. En L402: el agente paga la factura y obtiene un secreto (preimagen).</p><p><span class="k">Lectura jurídica</span>Aceptación de la oferta por el agente. Si elige mal, es una cuestión de mandato (arts. 1719 y 1726 CC), no de pagos.</p></details></div>
+<div class="alice s-no"><span class="who">Alice</span><span class="state">No está</span><p>El agente decide por su cuenta a quién paga y cuánto, dentro de lo que tiene.</p></div></li><li class="step" id="c2-6">
+<div class="main"><div class="head"><span class="num">6</span><span class="actor">Intermediario</span></div>
+<h4>Se comprueba la orden</h4><p>Un intermediario (o el propio servidor) revisa la orden antes de enviarla a la blockchain.</p><p class="chk"><span class="k">Se comprueba</span>Que la firma es válida, que el importe y el destinatario coinciden con lo pedido, que está en plazo y que el número único no se ha usado. Algunos intermediarios cotejan además listas de sanciones.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span><i>Facilitator</i> de x402: verifica y liquida. En L402, el servidor comprueba que el SHA-256 del secreto coincide con la huella guardada en el token: el mismo mecanismo que PKCE.</p><p><span class="k">Lectura jurídica</span>Si el intermediario no custodia fondos, su encaje como proveedor de servicios de pago es dudoso.</p></details></div>
+<div class="alice s-no"><span class="who">Alice</span><span class="state">No está</span><p>Todo ocurre entre máquinas.</p></div></li><li class="step" id="c2-7">
+<div class="main"><div class="head"><span class="num">7</span><span class="actor">Blockchain</span></div>
+<h4>La blockchain liquida</h4><p>La red comprueba que hay saldo y mueve los fondos en segundos. El pago es firme e irrevocable.</p><p class="chk"><span class="k">Se comprueba</span>El saldo disponible.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>Liquidación en cadena (por ejemplo, Base o Solana). En L402, en la red Lightning.</p><p><span class="k">Lectura jurídica</span>Sin contracargo ni devolución: no hay a quién pedirla.</p></details></div>
+<div class="alice s-no"><span class="who">Alice</span><span class="state">No está</span><p>Todo ocurre entre máquinas.</p></div></li><li class="step" id="c2-8">
+<div class="main"><div class="head"><span class="num">8</span><span class="actor">Servidor → AgenteBob</span></div>
+<h4>El servidor entrega el dato</h4><p>Confirmado el pago, el servidor responde con las cotizaciones. Pagar y recibir ocurren en la misma petición.</p>
+<details><summary>Lo técnico</summary><p><span class="k">Técnica</span>Respuesta con <code>PAYMENT-RESPONSE</code> (x402). En L402, el token con el secreto sirve para volver a acceder.</p></details></div>
+<div class="alice s-no"><span class="who">Alice</span><span class="state">No está</span><p>Todo ocurre entre máquinas.</p></div></li></ol></section><section class="band band-despues"><h3 class="band-t">Después</h3><ol class="stack"><li class="step" id="c2-9">
+<div class="main"><div class="head"><span class="num">9</span><span class="actor">Alice</span></div>
+<h4>Alice revisa</h4><p>Alice ve los movimientos en el monedero del agente: cuántas consultas ha pagado y a quién.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>Historial público de la blockchain.</p><p><span class="k">Lectura jurídica</span>Sin custodia, el pago queda fuera de la PSD2: no rigen los arts. 44 y 45 RDL 19/2018. Solo cabe reclamar al vendedor o al proveedor del agente, por vía contractual.</p></details></div>
+<div class="alice s-act"><span class="who">Alice</span><span class="state">Actúa</span><p>Revisa, pero con menos herramientas: no tiene un banco al que reclamar.</p></div></li></ol></section>
+</details>
+</section>
+
+<section class="panel" id="comparar" data-panel>
+<h2>Los dos caminos, lado a lado</h2>
+<p class="intro">En los dos, Alice decide antes y desaparece durante el pago. La diferencia está en quién garantiza el límite y en qué le queda a Alice si algo sale mal.</p>
+<div class="cmp">
+<div class="ccol"><h3>Primer camino: el permiso</h3><p class="cband">Antes · una sola vez</p><ul class="clist"><li><span class="cn">1</span><span class="ct">El agente se da de alta en el banco</span><span class="pill s-no">No está</span></li><li><span class="cn">2</span><span class="ct">Alice da la instrucción</span><span class="pill s-act">Actúa</span></li><li><span class="cn">3</span><span class="ct">El agente la envía a su banco</span><span class="pill s-see">Solo ve</span></li><li><span class="cn">4</span><span class="ct">Alice se identifica y consiente</span><span class="pill s-act">Actúa</span></li><li><span class="cn">5</span><span class="ct">El banco comprueba al agente</span><span class="pill s-no">No está</span></li><li><span class="cn">6</span><span class="ct">El banco entrega el permiso</span><span class="pill s-no">No está</span></li></ul><p class="cband">En cada pago · Alice no está</p><ul class="clist"><li><span class="cn">7</span><span class="ct">El agente encuentra la oferta y paga</span><span class="pill s-no">No está</span></li><li><span class="cn">8</span><span class="ct">El comercio lo comprueba todo</span><span class="pill s-no">No está</span></li><li><span class="cn">9</span><span class="ct">La red y el banco autorizan</span><span class="pill s-some">A veces</span></li><li><span class="cn">10</span><span class="ct">Se liquida el pago</span><span class="pill s-no">No está</span></li></ul><p class="cband">Después</p><ul class="clist"><li><span class="cn">11</span><span class="ct">Alice revisa y, si hace falta, reclama</span><span class="pill s-act">Actúa</span></li></ul></div><div class="ccol"><h3>Segundo camino: el pago como permiso</h3><p class="cband">Antes · una sola vez</p><ul class="clist"><li><span class="cn">1</span><span class="ct">Alice dota de fondos al agente</span><span class="pill s-act">Actúa</span></li><li><span class="cn">2</span><span class="ct">Alice da la instrucción</span><span class="pill s-act">Actúa</span></li></ul><p class="cband">En cada pago · Alice no está</p><ul class="clist"><li><span class="cn">3</span><span class="ct">El agente pide el dato</span><span class="pill s-no">No está</span></li><li><span class="cn">4</span><span class="ct">El servidor responde: «Pago requerido»</span><span class="pill s-no">No está</span></li><li><span class="cn">5</span><span class="ct">El agente decide y firma la orden</span><span class="pill s-no">No está</span></li><li><span class="cn">6</span><span class="ct">Se comprueba la orden</span><span class="pill s-no">No está</span></li><li><span class="cn">7</span><span class="ct">La blockchain liquida</span><span class="pill s-no">No está</span></li><li><span class="cn">8</span><span class="ct">El servidor entrega el dato</span><span class="pill s-no">No está</span></li></ul><p class="cband">Después</p><ul class="clist"><li><span class="cn">9</span><span class="ct">Alice revisa</span><span class="pill s-act">Actúa</span></li></ul></div></div>
+<div class="tw"><table class="cmpt">
+<thead><tr><th></th><th>Primer camino: el permiso</th><th>Segundo camino: el pago como permiso</th></tr></thead>
+<tbody>
+<tr><td>Quién autoriza</td><td>Alice, ante su banco, con autenticación reforzada</td><td>Alice, al dotar de fondos al agente; en cada pago decide el agente</td></tr>
+<tr><td>Dónde está el límite</td><td>En el permiso firmado por el banco y en el mandato firmado por Alice</td><td>En el saldo del monedero o en el permiso de gasto aplicado por contrato</td></tr>
+<tr><td>Quién comprueba cada pago</td><td>El comercio, la red de tarjetas y el banco de Alice</td><td>El intermediario o el servidor, y la blockchain</td></tr>
+<tr><td>Identidad</td><td>Alice identificada por su banco (KYC); agente registrado</td><td>Ninguna en el pago; KYC solo donde Alice compra las stablecoins</td></tr>
+<tr><td>Cuándo es firme el pago</td><td>Liquidación entre bancos, normalmente al día siguiente; cabe reclamar</td><td>En segundos; irrevocable</td></tr>
+<tr><td>Si algo sale mal</td><td>Devolución de operaciones no autorizadas (art. 45 RDL 19/2018), prueba a cargo del banco (art. 44) y devolución por importe inesperado (art. 48)</td><td>Sin custodia, fuera de la PSD2: solo reclamación contractual al vendedor o al proveedor del agente</td></tr>
+<tr><td>Norma principal</td><td>PSD2 (RDL 19/2018) y Reglamento Delegado (UE) 2018/389</td><td>Mandato (Código Civil) y contrato; MiCA si hay custodia o emisión de stablecoins</td></tr>
+</tbody></table></div>
+</section>
+
+<footer>
+<p class="note">Ejemplo simplificado con fines divulgativos. Alice, AgenteBob, las tiendas y las cotizaciones son ficticios. Las firmas se calculan en tu navegador con ECDSA P-256 para ilustrar el mecanismo: x402 real firma con la curva secp256k1 y el formato EIP-712. No escribas datos reales: nada sale de tu navegador.</p>
+<p class="note">Referencias: RFC 6749 (OAuth 2.0), RFC 7636 (PKCE), RFC 9449 (DPoP), especificación x402, especificación L402 de Lightning Labs, Real Decreto-ley 19/2018, Reglamento Delegado (UE) 2018/389, Reglamento (UE) 2023/1114 (MiCA).</p>
+</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+/* ---------- utilidades ---------- */
+var $=function(id){return document.getElementById(id)};
+var enc=new TextEncoder();
+var esc=function(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")};
+var hex=function(b){return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,"0")}).join("")};
+var b64u=function(b){var s="";new Uint8Array(b).forEach(function(x){s+=String.fromCharCode(x)});return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")};
+var rnd=function(n){return crypto.getRandomValues(new Uint8Array(n))};
+var CRYPTO=!!(window.crypto&&crypto.subtle);
+function sha(x){return crypto.subtle.digest("SHA-256",typeof x==="string"?enc.encode(x):x).then(function(b){return new Uint8Array(b)})}
+var EC={name:"ECDSA",namedCurve:"P-256"},ES={name:"ECDSA",hash:"SHA-256"};
+function keyPair(){return crypto.subtle.generateKey(EC,true,["sign","verify"])}
+function pubJwk(k){return crypto.subtle.exportKey("jwk",k.publicKey).then(function(j){return {kty:j.kty,crv:j.crv,x:j.x,y:j.y}})}
+function jws(k,h,p){var inp=b64u(enc.encode(JSON.stringify(h)))+"."+b64u(enc.encode(JSON.stringify(p)));return crypto.subtle.sign(ES,k.privateKey,enc.encode(inp)).then(function(s){return {tok:inp+"."+b64u(s),inp:inp,raw:s,h:h,p:p}})}
+function sign(k,obj){var m=JSON.stringify(obj);return crypto.subtle.sign(ES,k.privateKey,enc.encode(m)).then(function(s){return {msg:m,sig:b64u(s),raw:s}})}
+function verify(k,msg,raw){return crypto.subtle.verify(ES,k.publicKey,raw,enc.encode(msg))}
+var eur=function(n){return Number(n).toLocaleString("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2})};
+var usd=function(n){return Number(n).toLocaleString("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2})};
+var short=function(s,n){n=n||14;return s.length>n*2+1?s.slice(0,n)+"…"+s.slice(-n):s};
+var REDUCED=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+var wait=function(ms){return new Promise(function(r){setTimeout(r,REDUCED?0:ms)})};
+var ST={act:["Actúa","s-act"],see:["Solo ve","s-see"],some:["A veces","s-some"],no:["No está","s-no"]};
+function el(tag,attrs,html){var e=document.createElement(tag);if(attrs)for(var k in attrs){if(k==="class")e.className=attrs[k];else e.setAttribute(k,attrs[k])}if(html!=null)e.innerHTML=html;return e}
+function checksHtml(list){return '<ul class="checks">'+list.map(function(c){return '<li class="'+(c.ok?"ok":"bad")+'"><span class="m">'+(c.ok?"✓":"✗")+'</span><span>'+c.t+(c.d?'<small>'+c.d+'</small>':"")+(c.v?'<dl class="vt">'+c.v.map(function(r){return '<dt>'+r[0]+'</dt><dd>'+r[1]+'</dd>'}).join("")+'</dl>':"")+'</span></li>'}).join("")+'</ul>'}
+
+/* ---------- motor del recorrido ---------- */
+var STATE={};
+function Path(id,steps,initCtx){this.id=id;this.steps=steps;this.initCtx=initCtx;this.reset()}
+Path.prototype.reset=function(){this.idx=0;this.done=[];this.ctx=this.initCtx();this.auto=false;this.render()};
+Path.prototype.render=function(){
+  var me=this,flow=$("flow-"+this.id),rail=$("rail-"+this.id);
+  rail.innerHTML=this.steps.map(function(s,i){var st=ST[s.al];return '<li><span class="dot '+st[1]+(i<me.idx?" done":"")+(i===me.idx?" cur":"")+'" title="Paso '+s.n+': '+st[0]+'">'+s.n+'</span></li>'}).join("");
+  flow.innerHTML="";
+  var band=null;
+  this.steps.forEach(function(s,i){
+    if(i>me.idx)return;
+    if(s.band!==band){band=s.band;flow.appendChild(el("p",{"class":"band-t"},s.band))}
+    if(i<me.idx){
+      var d=me.done[i],st=ST[d.al||s.al];
+      var row=el("div",{"class":"done-row"},'<span class="okmark">✓</span><span><span class="t">'+s.n+'. '+s.t+'</span><br><span class="s">'+d.sum+'</span></span><span class="pill '+st[1]+'">'+st[0]+'</span>'+(d.html?'<details><summary>Ver lo que viajó y lo que se comprobó</summary><div class="res">'+d.html+'</div></details>':""));
+      flow.appendChild(row);
+    }else{flow.appendChild(me.card(s,i))}
+  });
+  if(this.idx<this.steps.length){
+    var rest=this.steps.slice(this.idx+1);
+    if(rest.length){var p=el("div",{"class":"pending"});rest.forEach(function(s){var st=ST[s.al];p.appendChild(el("div",null,'<span>'+s.n+'</span><span>'+s.t+'</span><span class="pill '+st[1]+'">'+st[0]+'</span>'))});flow.appendChild(el("p",{"class":"band-t"},"Pendiente"));flow.appendChild(p)}
+  }else{
+    flow.appendChild(el("div",{"class":"end appear"},this.endText()));
+  }
+};
+Path.prototype.endText=function(){return this.id==="c1"?'Recorrido completo: el agente ha pagado con un permiso del banco.<span>Alice solo ha intervenido antes (instrucción y consentimiento) y, si ha querido, después. Prueba ahora el segundo camino o vuelve a empezar provocando un fallo.</span>':'Recorrido completo: el agente ha pagado consulta a consulta con su propio monedero.<span>Alice solo ha intervenido antes (fondos e instrucción). El límite ha sido el saldo, y cada pago ha sido firme al instante.</span>'};
+Path.prototype.card=function(s,i){
+  var me=this,st=ST[s.al];
+  var c=el("article",{"class":"step appear",id:this.id+"-paso-"+s.n});
+  var alt=s.alt;
+  c.innerHTML='<div class="main"><div class="head"><span class="num">'+s.n+'</span><span class="actor">'+s.actor+'</span></div><h4>'+s.t+'</h4><p>'+s.que+'</p><div class="act'+(s.al==="act"||s.al==="see"?" alice-do":"")+'"><span class="k">'+(s.al==="act"?"Te toca: eres Alice":s.al==="see"?"Te toca: Alice mira":"Lo hacen las máquinas")+'</span><div class="ui"></div></div><div class="res"></div><details class="more"><summary>Lo técnico'+(s.jur?" y lo jurídico":"")+'</summary><p><span class="k">Técnica</span>'+s.tec+'</p>'+(s.jur?'<p><span class="k">Lectura jurídica</span>'+s.jur+'</p>':"")+'</details></div><div class="alice '+st[1]+'"><span class="who">Alice</span><span class="state">'+st[0]+'</span><p>'+alt+'</p></div>';
+  var ui=c.querySelector(".ui"),res=c.querySelector(".res");
+  var api={
+    res:function(h){res.insertAdjacentHTML("beforeend",h)},
+    clearRes:function(){res.innerHTML=""},
+    setAlice:function(key,text){var a=c.querySelector(".alice");a.className="alice "+ST[key][1];a.querySelector(".state").textContent=ST[key][0];if(text)a.querySelector("p").innerHTML=text;me._al=key},
+    finish:function(sum,opts){me.done[i]={sum:sum,html:res.innerHTML,al:me._al||null};me._al=null;me.idx=i+1;me.render();if(!me.auto){var nx=$(me.id+"-paso-"+(me.steps[me.idx]?me.steps[me.idx].n:""))||$("flow-"+me.id).lastElementChild;if(nx&&nx.scrollIntoView)nx.scrollIntoView({block:"nearest",behavior:REDUCED?"auto":"smooth"})}},
+    goto:function(j){me.idx=j;me.done=me.done.slice(0,j);me.render()},
+    btn:function(label,fn,cls){var b=el("button",{type:"button","class":cls||"primary"},label);b.addEventListener("click",function(){fn(b)});return b}
+  };
+  setTimeout(function(){s.ui(ui,me.ctx,api,me.auto)},0);
+  return c;
+};
+Path.prototype.autorun=async function(){
+  this.reset();this.auto=true;
+  for(var guard=0;guard<40&&this.idx<this.steps.length;guard++){
+    var before=this.idx;await wait(30);
+    var card=$(this.id+"-paso-"+this.steps[this.idx].n);if(!card)break;
+    var b=card.querySelector("button.primary");
+    for(var t=0;t<40&&!b;t++){await wait(25);b=card.querySelector("button.primary")}
+    if(!b)break;
+    b.click();
+    for(var t2=0;t2<200&&this.idx===before;t2++){await wait(25);var nb=card.querySelector("button.primary:not([data-used])");if(nb&&nb!==b){b=nb;b.click()}}
+    if(this.idx===before)break;
+  }
+  this.auto=false;
+};
+
+/* ---------- textos comunes ---------- */
+function field(label,id,type,value,attrs){return '<div><label for="'+id+'">'+label+'</label><input id="'+id+'" type="'+type+'" value="'+esc(value)+'" '+(attrs||"")+'></div>'}
+function markUsed(b){b.setAttribute("data-used","1");b.disabled=true}
+
+/* =========================================================
+   CAMINO 1 · EL PERMISO
+   ========================================================= */
+var C1=[
+{n:"1",band:"Antes · una sola vez",al:"no",actor:"Proveedor del agente → banco",t:"El agente se da de alta en el banco",
+ que:"El proveedor de AgenteBob lo registra en el banco de Alice: le asigna un identificador y deja guardada su clave pública, para reconocer sus firmas más adelante.",
+ alt:"No interviene. Ni siquiera lo ve: es una relación entre el proveedor del agente y el banco.",
+ tec:"Registro del cliente OAuth: <code>client_id</code>, dirección de vuelta y clave pública (<code>jwks</code>).",
+ jur:"Identidad técnica del agente ante ese banco. No es un permiso ni acredita quién responde del agente.",
+ ui:function(ui,ctx,api){ui.appendChild(api.btn("Registrar a AgenteBob en el banco",async function(b){markUsed(b);
+   ctx.kAgent=await keyPair();ctx.kBank=await keyPair();ctx.kAlice=await keyPair();ctx.jAgent=await pubJwk(ctx.kAgent);
+   api.res('<span class="k">Lo que guarda el banco</span><pre>'+esc(JSON.stringify({client_id:"agentebob",redirect_uris:["https://agentebob.example/callback"],token_endpoint_auth_method:"private_key_jwt",jwks:{keys:[Object.assign({kid:"agentebob-1"},ctx.jAgent)]}},null,2))+'</pre><p class="note">La clave pública (x, y) se acaba de generar en tu navegador. La privada se queda en el agente.</p>');
+   api.finish("Registrado con el identificador agentebob y su clave pública")}))}},
+{n:"2",band:"Antes · una sola vez",al:"act",actor:"Alice → AgenteBob",t:"Alice da la instrucción",
+ que:"Alice le pide a su agente lo que quiere y hasta cuánto puede gastar en ello.",
+ alt:"Encarga la compra y fija lo que quiere y hasta cuánto.",
+ tec:"La instrucción en lenguaje natural se convertirá después en un mandato firmado por Alice.",
+ jur:"Encargo de un mandato (art. 1709 CC): Alice fija el objeto y los límites.",
+ ui:function(ui,ctx,api){ui.insertAdjacentHTML("beforeend",'<div class="fields">'+field("Qué quieres que compre","c1-prod","text","Zapatillas de running, talla 42")+field("Máximo que puede gastar (€)","c1-max","number","120",'min="1" step="0.01"')+field("Válido hasta","c1-exp","date","2026-11-30")+'</div><p class="err" id="c1-e2"></p>');
+   ui.appendChild(api.btn("Enviar la instrucción al agente",function(b){var p=$("c1-prod").value.trim(),m=Number($("c1-max").value),e=$("c1-exp").value;
+     if(!p){$("c1-e2").textContent="Escribe qué quieres que compre.";return}
+     if(!(m>0)){$("c1-e2").textContent="Escribe un importe mayor que cero.";return}
+     if(!e){$("c1-e2").textContent="Elige hasta cuándo vale la instrucción.";return}
+     markUsed(b);ctx.prod=p;ctx.max=Math.round(m*100)/100;ctx.exp=e;
+     api.res('<span class="k">Instrucción</span><pre>«'+esc(p)+'», hasta '+eur(ctx.max)+' €, válida hasta el '+esc(e)+'</pre>');
+     api.finish("«"+esc(p)+"», hasta "+eur(ctx.max)+" €")}));
+   ["c1-prod","c1-max","c1-exp"].forEach(function(id){$(id).addEventListener("input",function(){$("c1-e2").textContent=""})})}},
+{n:"3",band:"Antes · una sola vez",al:"see",actor:"AgenteBob → banco de Alice",t:"El agente la envía a su banco",
+ que:"AgenteBob prepara un secreto que guarda para sí, calcula su huella y abre la web del banco de Alice con lo que pide. Por el navegador solo viaja la huella.",
+ alt:"Se encuentra en la web o la app de su banco, con la petición del agente a la vista.",
+ tec:"Petición de autorización OAuth con PKCE: el agente envía <code>code_challenge</code> = BASE64URL(SHA-256(<code>code_verifier</code>)) y guarda el <code>code_verifier</code>.",
+ jur:"",
+ ui:async function(ui,ctx,api){
+   ctx.verifier=b64u(rnd(32));ctx.challenge=b64u(await sha(ctx.verifier));
+   api.res('<span class="k">Lo que prepara el agente</span><pre>secreto (se queda en el agente) = '+ctx.verifier+'\nhuella = BASE64URL(SHA-256(secreto)) = '+ctx.challenge+'</pre><span class="k" style="margin-top:8px">Lo que viaja por el navegador</span><pre>https://banco.example/autorizar?client_id=agentebob\n&amp;scope=pagar\n&amp;code_challenge='+ctx.challenge+'\n&amp;code_challenge_method=S256</pre>');
+   ui.appendChild(api.btn("Abrir la web del banco",function(b){markUsed(b);api.finish("Secreto preparado; Alice está en la web de su banco")}))}},
+{n:"4",band:"Antes · una sola vez",al:"act",actor:"Alice → banco de Alice",t:"Alice se identifica y consiente",
+ que:"Alice se identifica ante su banco con dos factores, elige el límite del permiso y firma el mandato con sus instrucciones.",
+ alt:"Es el momento clave: se identifica, decide qué puede hacer el agente y lo firma. Aquí presta su consentimiento.",
+ tec:"Autenticación reforzada (dos de tres factores: conocimiento, posesión, inherencia), pantalla de consentimiento OAuth y firma del mandato con la clave del dispositivo de Alice.",
+ jur:"Consentimiento a una serie de operaciones (art. 36 RDL 19/2018) y autenticación reforzada (art. 68). Es el otorgamiento del poder.",
+ ui:function(ui,ctx,api){
+   ui.insertAdjacentHTML("beforeend",'<div class="bank"><div class="bt">Banco de Alice · Identifícate</div><div class="fields">'+field("PIN de ejemplo (4 cifras, no uses el real)","c1-pin","password","1234",'inputmode="numeric" maxlength="4" autocomplete="off"')+'</div><label class="chk"><input type="checkbox" id="c1-mob" checked> <span>He confirmado el acceso en mi móvil</span></label><div class="bt" style="margin-top:12px">AgenteBob solicita:</div><div class="fields"><div><label for="c1-perm">Pagar en tu nombre hasta</label><select id="c1-perm"><option value="100">100 € en 30 días</option><option value="200" selected>200 € en 30 días</option><option value="500">500 € en 30 días</option></select></div></div><label class="chk"><input type="checkbox" id="c1-ok" checked> <span>Autorizo este permiso y firmo el mandato: «'+esc(ctx.prod)+'», hasta '+eur(ctx.max)+' €, hasta el '+esc(ctx.exp)+'</span></label><p class="err" id="c1-e4"></p></div>');
+   ui.appendChild(api.btn("Confirmar en mi banco",async function(b){
+     var pin=$("c1-pin").value;
+     if(!/^\d{4}$/.test(pin)){$("c1-e4").textContent="El PIN de ejemplo debe tener 4 cifras.";return}
+     if(!$("c1-mob").checked){$("c1-e4").textContent="Falta el segundo factor: confirma en el móvil.";return}
+     if(!$("c1-ok").checked){$("c1-e4").textContent="Sin tu autorización, el banco no concede el permiso.";return}
+     markUsed(b);ctx.code=b64u(rnd(16));ctx.perm=Number($("c1-perm").value);
+     ctx.mandate={tipo:"mandato de intención",usuaria:"alice",agente:"agentebob",objeto:ctx.prod,maximo_eur:ctx.max,caduca:ctx.exp};
+     ctx.mSig=await sign(ctx.kAlice,ctx.mandate);
+     api.res(checksHtml([{ok:true,t:"Factor de conocimiento: PIN correcto"},{ok:true,t:"Factor de posesión: confirmación en el móvil"},{ok:true,t:"Mandato firmado con la clave del móvil de Alice",d:"huella "+hex(await sha(ctx.mSig.msg)).slice(0,32)+"… · firma "+short(ctx.mSig.sig)}])+'<span class="k" style="margin-top:8px">Mandato</span><pre>'+esc(JSON.stringify(ctx.mandate,null,2))+'</pre><span class="k" style="margin-top:8px">El banco devuelve a Alice al agente con un código de un solo uso</span><pre>https://agentebob.example/callback?code='+ctx.code+'</pre>');
+     api.finish("Autenticación reforzada superada · permiso de "+ctx.perm+" € · mandato firmado")}));
+   ["c1-pin","c1-mob","c1-ok"].forEach(function(id){$(id).addEventListener("input",function(){$("c1-e4").textContent=""})})}},
+{n:"5",band:"Antes · una sola vez",al:"no",actor:"AgenteBob → banco de Alice",t:"El banco comprueba al agente",
+ que:"El agente vuelve al banco por un canal directo, sin pasar por el navegador, para canjear el código por el permiso. Presenta cuatro pruebas (aserción firmada, código, secreto y prueba DPoP). El banco hace cinco comprobaciones y contrasta cada dato con algo que ya tenía guardado de los pasos anteriores.",
+ alt:"Ya ha vuelto a la conversación con su agente.",
+ tec:"Petición al punto de canje (<code>/token</code>) con autenticación del cliente por <code>private_key_jwt</code> (RFC 7523), código de autorización, <code>code_verifier</code> de PKCE (RFC 7636) y prueba DPoP (RFC 9449). Los JWT que ves son reales: cabecera.contenido.firma en Base64URL, firmados con ES256 en tu navegador.",
+ jur:"Es la comprobación de que quien recoge el poder es el apoderado y no cualquiera que haya visto pasar el código. Si falla, no hay permiso y no se llega a ningún pago.",
+ ui:function(ui,ctx,api){
+   ui.insertAdjacentHTML("beforeend",'<label class="chk"><input type="checkbox" id="c1-int"> <span>Provocar un fallo: alguien interceptó el código en el navegador e intenta canjearlo él</span></label>');
+   ui.appendChild(api.btn("Enviar la petición y ver cómo comprueba el banco",async function(b){markUsed(b);api.clearRes();
+     var attack=$("c1-int").checked;$("c1-int").disabled=true;
+     var now=Math.floor(Date.now()/1000);
+     ctx.kDpop=await keyPair();var kD=attack?await keyPair():ctx.kDpop,jD=await pubJwk(kD);
+     var signer=attack?await keyPair():ctx.kAgent;
+     var as=await jws(signer,{alg:"ES256",typ:"JWT",kid:"agentebob-1"},{iss:"agentebob",sub:"agentebob",aud:"https://banco.example/token",iat:now,exp:now+60,jti:b64u(rnd(12))});
+     var dp=await jws(kD,{typ:"dpop+jwt",alg:"ES256",jwk:jD},{htm:"POST",htu:"https://banco.example/token",iat:now,jti:b64u(rnd(12))});
+     var presented=attack?b64u(rnd(32)):ctx.verifier;
+     api.res('<span class="k">Lo que recibe el banco</span><pre>POST /token HTTP/1.1\nHost: banco.example\nDPoP: '+short(dp.tok,22)+'\n\ngrant_type=authorization_code\n&amp;code='+ctx.code+'\n&amp;redirect_uri=https://agentebob.example/callback\n&amp;code_verifier='+presented+'\n&amp;client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer\n&amp;client_assertion='+short(as.tok,22)+'</pre><details class="more"><summary>Ver los dos JWT decodificados</summary><span class="k" style="margin-top:8px">client_assertion (firmado con la clave del agente)</span><pre>cabecera  '+esc(JSON.stringify(as.h))+'\ncontenido '+esc(JSON.stringify(as.p,null,1))+'\nfirma     '+short(as.tok.split(".")[2],20)+'</pre><span class="k" style="margin-top:8px">DPoP (lleva dentro su propia clave pública)</span><pre>cabecera  '+esc(JSON.stringify(dp.h,null,1))+'\ncontenido '+esc(JSON.stringify(dp.p,null,1))+'</pre></details><div class="vres"></div>');
+     var box=document.querySelector("#c1-paso-5 .vres");
+     var okA=await verify(ctx.kAgent,as.inp,as.raw),okD=await verify(kD,dp.inp,dp.raw);
+     var h=b64u(await sha(presented)),okP=h===ctx.challenge;
+     var jkt=b64u(await sha(JSON.stringify({crv:jD.crv,kty:jD.kty,x:jD.x,y:jD.y})));
+     var list=[
+      {ok:okA,t:"1. Aserción: ¿la firmó agentebob?",v:[["Recibe","client_assertion · iss = agentebob · kid = agentebob-1"],["Contrasta con","la clave pública agentebob-1, guardada al darle de alta (paso 1): x = "+short(ctx.jAgent.x,10)],["Operación","Verificar(clave registrada, cabecera.contenido, firma)"],["Resultado",okA?"firma válida: la hizo la clave privada del agente":"firma no válida: la hizo otra clave"]]},
+      {ok:true,t:"2. Aserción: ¿es para este banco, está vigente y es nueva?",v:[["Recibe","aud = https://banco.example/token · exp = "+(now+60)+" · jti = "+as.p.jti],["Contrasta con","su propia dirección, su reloj ("+now+") y la lista de jti ya recibidos"],["Operación","aud = dirección propia · ahora &lt; exp · jti no repetido"],["Resultado","correcto: no es una aserción reutilizada ni pensada para otro banco"]]},
+      {ok:true,t:"3. Código: ¿lo emitió el banco, para este agente, y sigue sin usar?",v:[["Recibe","code = "+ctx.code+" · redirect_uri"],["Contrasta con","el registro que creó al emitir el código en el paso 4: client_id agentebob, redirect_uri, caduca a los 60 s, sin usar"],["Operación","buscar el código · comparar client_id y redirect_uri · marcarlo como usado"],["Resultado","código válido; desde ahora queda inutilizado"+(attack?" (el atacante tiene el código auténtico)":"")]]},
+      {ok:okP,t:"4. PKCE: ¿conoce el secreto quien pidió el código?",v:[["Recibe","code_verifier = "+presented],["Contrasta con","code_challenge guardado junto al código; llegó por el navegador en el paso 3: "+ctx.challenge],["Operación","BASE64URL(SHA-256(code_verifier)) = "+h],["Resultado",okP?"coinciden: es quien inició la petición":"no coinciden: quien canjea no es quien pidió"]]},
+      {ok:okD,t:"5. DPoP: ¿controla una clave a la que atar el permiso?",v:[["Recibe","cabecera DPoP con su clave pública dentro: x = "+short(jD.x,10)],["Contrasta con","nada previo: la clave viaja en la propia prueba. Comprueba htm = POST, htu = su dirección, iat reciente"],["Operación","Verificar(jwk de la prueba, firma) · huella jkt = BASE64URL(SHA-256(jwk canónica, RFC 7638)) = "+jkt],["Resultado",okD?"válida: el permiso llevará grabada esta huella"+(attack?". DPoP no impide que alguien pruebe con su propia clave; lo frenan las comprobaciones 1 y 4":""):"no válida"]]}];
+     var shown=[];for(var j=0;j<list.length;j++){shown.push(list[j]);box.innerHTML=checksHtml(shown);await wait(420)}
+     if(okA&&okP&&okD){ctx.jkt=jkt;box.insertAdjacentHTML("beforeend",'<div class="msg ok">Las cinco comprobaciones se superan: el banco emitirá el permiso para agentebob, atado a la huella '+short(jkt,8)+'.</div>');
+       ui.appendChild(api.btn("Continuar",function(b2){markUsed(b2);api.finish("Agente autenticado, código canjeado, PKCE y DPoP comprobados")}))}
+     else{box.insertAdjacentHTML("beforeend",'<div class="msg bad">Rechazado. Quien canjea tiene el código auténtico, pero ni firma con la clave de agentebob (1) ni conoce el secreto del paso 3 (4): tener el código no basta. Son dos barreras independientes; PKCE protege incluso a los agentes que no pueden guardar una clave. El banco no entrega el permiso.</div>');
+       ui.appendChild(api.btn("Repetir sin ataque",function(){api.goto(4)}))}
+   }))}},
+
+{n:"6",band:"Antes · una sola vez",al:"no",actor:"Banco de Alice → AgenteBob",t:"El banco entrega el permiso",
+ que:"El banco firma un permiso que solo vale en manos del agente y le da una credencial sustitutiva de la tarjeta (token de red), limitada al agente y al importe.",
+ alt:"No está. Desde ahora puede revocar el permiso en cualquier momento desde su banco.",
+ tec:"Token de acceso firmado por el banco y vinculado a la clave DPoP del agente; token de red de la tarjeta.",
+ jur:"El token es un título de legitimación nominativo: da al tercero «conocimiento suficiente de los poderes» (art. 1725 CC).",
+ ui:async function(ui,ctx,api){
+   ctx.token={iss:"banco.example",sub:"alice",client_id:"agentebob",scope:"pagar:max"+ctx.perm,caduca:"30 días",cnf:{jkt:ctx.jkt}};
+   ctx.tSig=await sign(ctx.kBank,ctx.token);
+   api.res('<span class="k">Permiso (contenido legible; lo que no se puede es alterarlo)</span><pre>'+esc(JSON.stringify(ctx.token,null,2))+'\nfirma del banco: '+short(ctx.tSig.sig,20)+'</pre><span class="k" style="margin-top:8px">Token de red</span><pre>4895 •••• •••• 7731 · solo AgenteBob · máximo '+ctx.perm+' €</pre>');
+   ui.appendChild(api.btn("Continuar",function(b){markUsed(b);api.finish("Permiso de "+ctx.perm+" € firmado por el banco y token de red emitido")}))}},
+{n:"7",band:"En cada pago · Alice no está",al:"no",actor:"AgenteBob → comercio",t:"El agente encuentra ofertas y paga",
+ que:"Días después, AgenteBob encuentra varias ofertas. Elige tú cuál intenta pagar: verás qué ocurre si se sale de los límites.",
+ alt:"No está. No recibe ninguna pregunta.",
+ tec:"La petición de pago lleva cuatro pruebas: firma del agente (Web Bot Auth), permiso del banco, prueba DPoP y mandato de Alice.",
+ jur:"",
+ ui:function(ui,ctx,api){
+   var a=Math.max(1,Math.round(ctx.max*0.95*100-1)/100),bb=Math.round(ctx.max*1.15*100)/100,c=Math.round(ctx.perm*1.25*100)/100;
+   ctx.offers=[{id:"A",shop:"Tienda A",price:a},{id:"B",shop:"Tienda B",price:bb},{id:"C",shop:"Tienda C (edición limitada)",price:c}];
+   ui.insertAdjacentHTML("beforeend",ctx.offers.map(function(o,j){return '<label class="offer"><input type="radio" name="c1-off" value="'+j+'"'+(j===0?" checked":"")+'><span>'+o.shop+' · '+esc(ctx.prod)+'</span><b>'+eur(o.price)+' €</b></label>'}).join(""));
+   ui.appendChild(api.btn("Que el agente pague esta oferta",function(b){markUsed(b);var j=Number(document.querySelector('input[name="c1-off"]:checked').value);ctx.pick=ctx.offers[j];
+     api.res('<span class="k">Lo que envía al comercio</span>'+checksHtml([{ok:true,t:"Su propia firma, con la clave registrada en la red de tarjetas"},{ok:true,t:"El permiso firmado por el banco ("+ctx.token.scope+")"},{ok:true,t:"La prueba de que ese permiso es suyo (DPoP)"},{ok:true,t:"El mandato firmado por Alice (máximo "+eur(ctx.max)+" €)"}])+'<pre>Pago: '+esc(ctx.pick.shop)+' · '+eur(ctx.pick.price)+' €</pre>');
+     api.finish(esc(ctx.pick.shop)+": "+eur(ctx.pick.price)+" €")}))}},
+{n:"8",band:"En cada pago · Alice no está",al:"no",actor:"Comercio",t:"El comercio lo comprueba todo",
+ que:"El comercio verifica, por este orden, quién llama, qué trae, si es suyo y si cabe en lo autorizado.",
+ alt:"No está.",
+ tec:"En el simulador detallado son las comprobaciones B1 a B6. La criptografía va antes que las reglas de negocio: no tiene sentido comparar importes si antes no se sabe que los límites son auténticos.",
+ jur:"Si la compra excede los límites, se rechaza aunque todas las firmas sean válidas: el mandatario no puede traspasar los límites del mandato (art. 1714 CC).",
+ ui:function(ui,ctx,api){
+   ui.appendChild(api.btn("Ver cómo comprueba el comercio",async function(b){markUsed(b);
+     var okT=await verify(ctx.kBank,ctx.tSig.msg,ctx.tSig.raw),okM=await verify(ctx.kAlice,ctx.mSig.msg,ctx.mSig.raw);
+     var p=ctx.pick.price,inM=p<=ctx.max+1e-9,inP=p<=ctx.perm+1e-9;
+     var list=[{ok:true,t:"Quién llama: la firma del agente cuadra con su clave del directorio de la red"},
+               {ok:okT,t:"Qué trae: el permiso lo firmó el banco y no ha cambiado",d:"Verificar(clave pública del banco, permiso, firma) → "+(okT?"válida":"no válida")},
+               {ok:true,t:"Si es suyo: la prueba DPoP corresponde a la clave grabada en el permiso",d:"huella de la clave de la prueba = cnf.jkt del permiso = "+short(ctx.jkt,10)},
+               {ok:okM,t:"El mandato lo firmó Alice y no ha cambiado",d:"Verificar(clave de Alice, mandato, firma) → "+(okM?"válida":"no válida")},
+               {ok:inM,t:"Si cabe: "+eur(p)+" € frente a los "+eur(ctx.max)+" € del mandato"},
+               {ok:inP,t:"Si cabe: "+eur(p)+" € frente a los "+ctx.perm+" € del permiso"}];
+     var shown=[];for(var j=0;j<list.length;j++){shown.push(list[j]);api.clearRes();api.res(checksHtml(shown));await wait(320);if(!list[j].ok)break}
+     if(inM&&inP){ui.appendChild(api.btn("Continuar",function(b2){markUsed(b2);api.finish("Todas las comprobaciones superadas")}))}
+     else{api.res('<div class="msg bad">Rechazado: todas las firmas son auténticas, pero la compra excede '+(inM?"el permiso del banco":"el mandato de Alice")+'. Es un exceso del mandato.</div>');
+       ui.appendChild(api.btn("Que el agente elija otra oferta",function(){api.goto(6)}))}
+   }))}},
+{n:"9",band:"En cada pago · Alice no está",al:"some",actor:"Red de tarjetas → banco de Alice",t:"La red y el banco autorizan",
+ que:"La red sustituye la credencial del agente por la tarjeta real. El banco de Alice ve que paga un agente y decide aprobar, denegar o pedir una confirmación.",
+ alt:"Normalmente, nada. Solo si el banco lo exige, recibe un aviso en el móvil para confirmar.",
+ tec:"Autorización ordinaria de tarjeta, acompañada del mandato de pago (agente presente, usuaria ausente).",
+ jur:"Encaje de la autenticación reforzada con la ordenante ausente: operaciones iniciadas por el comercio o exención de importe reducido. Es una cuestión abierta.",
+ ui:function(ui,ctx,api){
+   ui.insertAdjacentHTML("beforeend",'<label class="chk"><input type="checkbox" id="c1-sca"> <span>Simular que el banco pide confirmación a Alice</span></label>');
+   ui.appendChild(api.btn("Enviar a la red y al banco",function(b){markUsed(b);$("c1-sca").disabled=true;
+     if(!$("c1-sca").checked){api.res(checksHtml([{ok:true,t:"La red reconoce el token de red de AgenteBob y lo traduce a la tarjeta"},{ok:true,t:"El banco aprueba sin pedir nada a Alice (operación dentro del mandato)"}]));
+       ui.appendChild(api.btn("Continuar",function(b2){markUsed(b2);api.finish("Aprobado por el banco sin intervención de Alice")}));return}
+     api.setAlice("act","El banco le pide confirmación: en este pago concreto, Alice sí actúa.");
+     api.res('<div class="bank"><div class="bt">Aviso en el móvil de Alice</div><p>¿Confirmas el pago de '+eur(ctx.pick.price)+' € en '+esc(ctx.pick.shop)+', iniciado por AgenteBob?</p></div>');
+     var yes=api.btn("Confirmar el pago",function(b3){markUsed(b3);no.disabled=true;api.res('<div class="msg ok">Alice confirma: el banco aprueba.</div>');api.finish("Aprobado tras la confirmación de Alice")});
+     var no=api.btn("Rechazar",function(b4){markUsed(b4);yes.disabled=true;api.res('<div class="msg bad">Alice rechaza: el banco deniega el pago.</div>');ui.appendChild(api.btn("Volver a las ofertas",function(){api.goto(6)}))},"danger");
+     ui.appendChild(yes);ui.appendChild(document.createTextNode(" "));ui.appendChild(no)}))}},
+{n:"10",band:"En cada pago · Alice no está",al:"no",actor:"Bancos",t:"Se liquida el pago",
+ que:"Los bancos liquidan entre sí, normalmente al día siguiente, y el cargo aparece en la cuenta de Alice.",
+ alt:"No está.",
+ tec:"Liquidación en la red de tarjetas. Algunas redes ya liquidan con los bancos en stablecoins, sin que el titular lo note.",
+ jur:"",
+ ui:function(ui,ctx,api){api.res('<pre>Cargo en la cuenta de Alice · '+esc(ctx.pick.shop)+' · '+eur(ctx.pick.price)+' € · pago iniciado por AgenteBob</pre>');
+   ui.appendChild(api.btn("Continuar",function(b){markUsed(b);api.finish("Cargo de "+eur(ctx.pick.price)+" € en la cuenta de Alice")}))}},
+{n:"11",band:"Después",al:"act",actor:"Alice",t:"Alice revisa y, si hace falta, reclama",
+ que:"Alice ve el cargo en su extracto. Elige qué hace.",
+ alt:"Revisa el cargo y conserva las herramientas del Derecho de pagos.",
+ tec:"Revocación del permiso desde el banco; reclamación por el canal del emisor.",
+ jur:"Operación no autorizada: devolución inmediata (art. 45 RDL 19/2018), con la prueba a cargo del banco (art. 44). Importe superior al esperado sin importe exacto autorizado: devolución en ocho semanas (arts. 48 y 49).",
+ ui:function(ui,ctx,api){
+   var opts=[["Todo correcto","Alice reconoce la compra. No hace nada más.","Compra conforme"],
+             ["No reconozco este cargo","Alice lo comunica a su banco. Si la operación no estaba autorizada, el banco debe devolver el importe de inmediato (art. 45 RDL 19/2018) y le corresponde probar que estaba autenticada (art. 44). Aquí la prueba es la cadena de firmas: el mandato de Alice y la firma del agente.","Reclamación al banco"],
+             ["Revocar el permiso del agente","Alice revoca el permiso desde su banco. A partir de ese momento, cualquier pago que el agente intente con ese permiso se rechaza.","Permiso revocado"]];
+   opts.forEach(function(o,j){ui.appendChild(api.btn(o[0],function(b){[].forEach.call(ui.querySelectorAll("button"),function(x){x.disabled=true});b.setAttribute("data-used","1");api.res('<div class="msg ok">'+o[1]+'</div>');api.finish(o[2])},j===0?"primary":""));ui.appendChild(document.createTextNode(" "))})}}
+];
+
+/* =========================================================
+   CAMINO 2 · EL PAGO COMO PERMISO (402)
+   ========================================================= */
+var PRICE=0.05;
+var C2=[
+{n:"1",band:"Antes · una sola vez",al:"act",actor:"Alice → monedero del agente",t:"Alice dota de fondos al agente",
+ que:"Alice decide cuánto puede gastar su agente: carga su monedero con stablecoins o le concede un permiso de gasto con tope.",
+ alt:"Es el momento clave: decide cuánto puede gastar el agente. Lo que no esté disponible no se puede gastar.",
+ tec:"Monedero propio sin custodia, o permiso de gasto aplicado por contrato inteligente (ERC-7715 / ERC-7710, <i>Spend Permissions</i>).",
+ jur:"Mandato con provisión de fondos, como la caja fija de un empleado. Sin custodia, no es el consentimiento del art. 36 RDL 19/2018: no hay proveedor de servicios de pago.",
+ ui:function(ui,ctx,api){
+   ui.insertAdjacentHTML("beforeend",'<div class="fields"><div><label for="c2-mode">Cómo</label><select id="c2-mode"><option value="carga">Cargar el monedero del agente</option><option value="permiso">Concederle un permiso de gasto</option></select></div>'+field("Importe (USDC)","c2-amt","number","0.20",'min="0.01" max="1000" step="0.01"')+'</div><p class="err" id="c2-e1"></p>');
+   ui.appendChild(api.btn("Dotar de fondos al agente",async function(b){var m=Number($("c2-amt").value);
+     if(!(m>0&&m<=1000)){$("c2-e1").textContent="Escribe un importe entre 0,01 y 1.000.";return}
+     markUsed(b);ctx.mode=$("c2-mode").value;ctx.bal=Math.round(m*100)/100;ctx.start=ctx.bal;ctx.kWallet=await keyPair();ctx.nonces={};ctx.from="0x"+hex(rnd(20));
+     api.res(ctx.mode==="carga"?'<pre>Alice compra '+usd(ctx.bal)+' USDC en una plataforma que la identifica (KYC)\ny los transfiere al monedero de AgenteBob ('+short(ctx.from,6)+').\nSaldo del agente: '+usd(ctx.bal)+' USDC</pre>':'<pre>Alice firma en su monedero un permiso de gasto:\n  quién puede gastar: AgenteBob\n  moneda: USDC · tope: '+usd(ctx.bal)+' por mes · revocable\nLos fondos siguen en la cuenta de Alice; un contrato impide superar el tope.</pre>');
+     api.finish((ctx.mode==="carga"?"Monedero cargado con ":"Permiso de gasto de ")+usd(ctx.bal)+" USDC")}));
+   $("c2-amt").addEventListener("input",function(){$("c2-e1").textContent=""})}},
+{n:"2",band:"Antes · una sola vez",al:"act",actor:"Alice → AgenteBob",t:"Alice da la instrucción",
+ que:"Alice le encarga una tarea. No dice a quién pagar ni cuánto por cada consulta: eso lo decidirá el agente.",
+ alt:"Encarga la tarea con instrucciones abiertas.",
+ tec:"La instrucción no se firma: el límite está en los fondos o en el permiso de gasto.",
+ jur:"Encargo del mandato. Las instrucciones son más abiertas que en el primer camino.",
+ ui:function(ui,ctx,api){
+   ui.insertAdjacentHTML("beforeend",'<div class="fields">'+field("¿De cuántas empresas quieres la cotización de cierre de hoy?","c2-n","number","6",'min="1" max="12" step="1"')+'</div><p class="err" id="c2-e2"></p>');
+   ui.appendChild(api.btn("Enviar la instrucción al agente",function(b){var n=Number($("c2-n").value);
+     if(!(Number.isInteger(n)&&n>=1&&n<=12)){$("c2-e2").textContent="Elige un número entero entre 1 y 12.";return}
+     markUsed(b);ctx.n=n;api.finish("Cotizaciones de cierre de "+n+" empresa"+(n>1?"s":""))}));
+   $("c2-n").addEventListener("input",function(){$("c2-e2").textContent=""})}},
+{n:"3",band:"En cada pago · Alice no está",al:"no",actor:"AgenteBob → servidor",t:"El agente pide el primer dato",
+ que:"AgenteBob hace una petición normal a la API de un proveedor de datos con el que nunca ha tratado. Sin registro ni cuenta.",
+ alt:"No está.",
+ tec:"Petición HTTP ordinaria.",
+ jur:"",
+ ui:function(ui,ctx,api){api.res('<pre>GET /cotizaciones/empresa-1/cierre HTTP/1.1\nHost: datos.example</pre>');
+   ui.appendChild(api.btn("Enviar la petición",function(b){markUsed(b);api.finish("Petición enviada a datos.example")}))}},
+{n:"4",band:"En cada pago · Alice no está",al:"no",actor:"Servidor → AgenteBob",t:"El servidor responde: «Pago requerido»",
+ que:"El servidor contesta con el código 402 y sus condiciones: precio, moneda, red y destinatario.",
+ alt:"No está.",
+ tec:"Respuesta HTTP 402 con la cabecera <code>PAYMENT-REQUIRED</code> (x402). En L402: una factura de Lightning y un token (<i>macaroon</i>).",
+ jur:"Oferta de contrato automatizada: precio y condiciones las fija el servidor.",
+ ui:function(ui,ctx,api){ctx.payTo="0x"+hex(rnd(20));ctx.asset="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+   ctx.req={scheme:"exact",network:"base",asset:ctx.asset,amount:String(Math.round(PRICE*1e6)),payTo:ctx.payTo,maxTimeoutSeconds:60};
+   api.res('<pre>HTTP/1.1 402 Payment Required\nPAYMENT-REQUIRED: '+esc(JSON.stringify(ctx.req,null,2))+'</pre><p class="note">amount va en unidades mínimas: USDC tiene 6 decimales, así que '+ctx.req.amount+' = '+usd(PRICE)+' USDC. asset es la dirección del contrato de USDC en la red Base.</p>');
+   ui.appendChild(api.btn("Continuar",function(b){markUsed(b);api.finish("Precio: "+usd(PRICE)+" USDC por consulta")}))}},
+{n:"5",band:"En cada pago · Alice no está",al:"no",actor:"AgenteBob",t:"El agente decide y firma la orden",
+ que:"AgenteBob comprueba que el precio cabe en lo que tiene y firma una orden de transferencia por ese importe exacto, a ese destinatario, válida un minuto y con un número único.",
+ alt:"No está. El agente decide por su cuenta a quién paga y cuánto, dentro de lo que tiene.",
+ tec:"Autorización de transferencia EIP-3009 (<code>transferWithAuthorization</code>) enviada en la cabecera <code>PAYMENT-SIGNATURE</code>. Las horas van en segundos Unix. En L402, el agente paga la factura y obtiene un secreto (preimagen).",
+ jur:"Aceptación de la oferta por el agente. Si elige mal, es una cuestión de mandato (arts. 1719 y 1726 CC), no de pagos.",
+ ui:async function(ui,ctx,api){
+   var fits=ctx.bal+1e-9>=PRICE,now=Math.floor(Date.now()/1000);
+   ctx.order={from:ctx.from,to:ctx.payTo,value:ctx.req.amount,validAfter:String(now),validBefore:String(now+60),nonce:"0x"+hex(rnd(32))};
+   ctx.oSig=await sign(ctx.kWallet,ctx.order);
+   api.res(checksHtml([{ok:fits,t:"¿Cabe? "+usd(PRICE)+" USDC frente a "+usd(ctx.bal)+" USDC disponibles"}])+'<span class="k" style="margin-top:8px">Orden firmada (authorization)</span><pre>'+esc(JSON.stringify(ctx.order,null,2))+'\nsignature: '+short(ctx.oSig.sig,20)+'</pre>');
+   ui.appendChild(api.btn("Enviar la orden firmada",function(b){markUsed(b);api.finish("Orden de "+usd(PRICE)+" USDC firmada")}))}},
+{n:"6",band:"En cada pago · Alice no está",al:"no",actor:"Servidor → intermediario",t:"Se comprueba la orden",
+ que:"El servidor no comprueba la orden por sí mismo: se la pasa a un intermediario junto con las condiciones que fijó en el paso 4. El intermediario contrasta cada dato de la orden con esas condiciones, con su reloj y con lo que consta en la blockchain. No puede desviar el dinero: la firma fija el destinatario.",
+ alt:"No está.",
+ tec:"Llamada del servidor a <code>/verify</code> del <i>facilitator</i> con <code>paymentPayload</code> (lo que firmó el agente) y <code>paymentRequirements</code> (lo que pidió el servidor). Las lecturas en la blockchain son consultas gratuitas al contrato de USDC: <code>authorizationState(from, nonce)</code> y <code>balanceOf(from)</code>. En L402 no hay intermediario: el servidor comprueba que el SHA-256 del secreto recibido coincide con la huella de su token, el mismo mecanismo que PKCE en el primer camino.",
+ jur:"Si el intermediario no custodia fondos, su encaje como proveedor de servicios de pago es dudoso.",
+ ui:function(ui,ctx,api){
+   ui.insertAdjacentHTML("beforeend",'<label class="chk"><input type="checkbox" id="c2-rep"> <span>Provocar un fallo: alguien copia la orden y la reenvía para cobrar dos veces</span></label>');
+   ui.appendChild(api.btn("Ver cómo se comprueba",async function(b){markUsed(b);$("c2-rep").disabled=true;
+     var rep=$("c2-rep").checked;if(rep)ctx.nonces[ctx.order.nonce]=true;
+     var o=ctx.order,r=ctx.req,now=Math.floor(Date.now()/1000);
+     api.res('<span class="k">Lo que recibe el intermediario</span><pre>POST /verify   (servidor → intermediario)\n'+esc(JSON.stringify({paymentPayload:{scheme:"exact",network:"base",payload:{signature:short(ctx.oSig.sig,10),authorization:o}},paymentRequirements:r},null,2))+'</pre><p class="note">paymentPayload sale de la cabecera PAYMENT-SIGNATURE del agente (paso 5); paymentRequirements, de la respuesta 402 del propio servidor (paso 4).</p><div class="vres"></div>');
+     var box=document.querySelector("#c2-paso-6 .vres");
+     var okS=await verify(ctx.kWallet,ctx.oSig.msg,ctx.oSig.raw),used=!!ctx.nonces[o.nonce],bal=Math.round(ctx.bal*1e6),okB=bal>=Number(o.value);
+     var pre=rnd(32),ph=hex(await sha(pre));
+     var list=[
+      {ok:true,t:"1. Esquema, red y moneda",v:[["Recibe","paymentPayload · scheme = exact · network = base"],["Contrasta con","paymentRequirements (paso 4): exact · base · asset "+short(r.asset,6)],["Operación","igualdad de los tres campos"],["Resultado","coinciden"]]},
+      {ok:okS,t:"2. Firma: ¿la orden la firmó el monedero que paga?",v:[["Recibe","signature + authorization · from = "+short(o.from,6)],["Contrasta con","la dirección from que figura en la propia orden"],["Operación","x402 real: recupera la dirección firmante de la firma (ecrecover sobre el mensaje EIP-712) y la compara con from. Aquí: Verificar(clave del monedero, orden, firma)"],["Resultado",okS?"válida: nadie ha alterado importe, destinatario ni plazo":"no válida"]]},
+      {ok:o.value===r.amount,t:"3. Importe",v:[["Recibe","authorization.value = "+o.value],["Contrasta con","paymentRequirements.amount (paso 4) = "+r.amount],["Operación","value = amount (el esquema exact exige el importe exacto)"],["Resultado","coinciden: "+usd(PRICE)+" USDC"]]},
+      {ok:o.to===r.payTo,t:"4. Destinatario",v:[["Recibe","authorization.to = "+short(o.to,6)],["Contrasta con","paymentRequirements.payTo (paso 4) = "+short(r.payTo,6)],["Operación","to = payTo"],["Resultado","coinciden: el dinero solo puede ir al servidor"]]},
+      {ok:true,t:"5. Plazo",v:[["Recibe","validAfter = "+o.validAfter+" · validBefore = "+o.validBefore],["Contrasta con","su reloj: "+now],["Operación","validAfter ≤ ahora &lt; validBefore"],["Resultado","dentro de plazo (le quedan "+(Number(o.validBefore)-now)+" s)"]]},
+      {ok:!used,t:"6. Número único: ¿se ha usado ya esta orden?",v:[["Recibe","authorization.nonce = "+short(o.nonce,8)],["Contrasta con","la blockchain: contrato de USDC, consulta authorizationState(from, nonce)"],["Operación","lectura en cadena (no cuesta nada ni mueve fondos)"],["Resultado",used?"true: ya se usó. Es una orden repetida":"false: no se ha usado nunca"]]},
+      {ok:okB,t:"7. Saldo",v:[["Recibe","from = "+short(o.from,6)+" · value = "+o.value],["Contrasta con","la blockchain: contrato de USDC, consulta balanceOf(from) = "+bal],["Operación","saldo ≥ value"],["Resultado",okB?"hay fondos":"saldo insuficiente"]]}];
+     var shown=[];for(var j=0;j<list.length;j++){shown.push(list[j]);box.innerHTML=checksHtml(shown);await wait(380)}
+     var good=okS&&!used&&okB;
+     box.insertAdjacentHTML("beforeend",'<span class="k" style="margin-top:10px">Respuesta del intermediario al servidor</span><pre>'+(good?'{"isValid": true, "payer": "'+o.from+'"}':'{"isValid": false, "invalidReason": "'+(used?"nonce_already_used":"invalid_payload")+'"}')+'</pre><details class="more"><summary>Y en L402, ¿cómo se comprueba?</summary><pre>secreto (preimagen) que obtiene el agente al pagar = '+hex(pre).slice(0,32)+'…\nhuella guardada en el token del servidor      = '+ph.slice(0,32)+'…\nSHA-256(secreto) = huella → pago demostrado, sin consultar ninguna base de datos</pre></details>');
+     if(used){box.insertAdjacentHTML("beforeend",'<div class="msg bad">Rechazada: el contrato de USDC ya registra ese número único como usado, así que la misma orden no puede cobrarse dos veces.</div>');ui.appendChild(api.btn("Repetir sin ataque",function(){delete ctx.nonces[ctx.order.nonce];api.goto(5)}));return}
+     ctx.nonces[o.nonce]=true;
+     ui.appendChild(api.btn("Continuar",function(b2){markUsed(b2);api.finish("Orden válida; el intermediario la envía a la blockchain")}))}))}},
+
+{n:"7",band:"En cada pago · Alice no está",al:"no",actor:"Blockchain",t:"La blockchain liquida",
+ que:"La red comprueba que hay saldo y mueve los fondos en segundos. El pago es firme e irrevocable.",
+ alt:"No está.",
+ tec:"Liquidación en cadena (por ejemplo, Base o Solana). En L402, en la red Lightning.",
+ jur:"Sin contracargo ni devolución: no hay a quién pedirla.",
+ ui:function(ui,ctx,api){var before=ctx.bal;ctx.bal=Math.round((ctx.bal-PRICE)*100)/100;ctx.paid=[{i:1,ok:true,bal:ctx.bal}];
+   api.res('<pre>'+usd(before)+' USDC − '+usd(PRICE)+' USDC = '+usd(ctx.bal)+' USDC disponibles\nEstado: liquidado · irrevocable</pre>');
+   ui.appendChild(api.btn("Continuar",function(b){markUsed(b);api.finish("Liquidado: quedan "+usd(ctx.bal)+" USDC")}))}},
+{n:"8",band:"En cada pago · Alice no está",al:"no",actor:"Servidor → AgenteBob",t:"El servidor entrega el dato, y el agente sigue",
+ que:"Confirmado el pago, el servidor responde con el dato. Pagar y recibir ocurren en la misma petición. Después, el agente repite el ciclo para el resto de empresas, hasta terminar o quedarse sin fondos.",
+ alt:"No está, ni siquiera cuando el agente se queda sin saldo.",
+ tec:"Respuesta con la cabecera <code>PAYMENT-RESPONSE</code> (x402). En L402, el token junto con el secreto sirve para volver a acceder.",
+ jur:"",
+ ui:function(ui,ctx,api){
+   var quote=function(){return (20+Math.random()*80).toFixed(2).replace(".",",")};
+   api.res('<pre>HTTP/1.1 200 OK\nPAYMENT-RESPONSE: liquidado\n{"empresa": "Empresa 1", "cierre": "'+quote()+' EUR"}</pre>');
+   ui.appendChild(api.btn("Ejecutar el resto de consultas",async function(b){markUsed(b);
+     var rows=['<tr><td>1</td><td>'+usd(PRICE)+'</td><td>'+usd(ctx.paid[0].bal)+'</td><td>✓ dato recibido</td></tr>'];
+     var okCount=1;
+     for(var i=2;i<=ctx.n;i++){
+       if(ctx.bal+1e-9>=PRICE){ctx.bal=Math.round((ctx.bal-PRICE)*100)/100;okCount++;rows.push('<tr><td>'+i+'</td><td>'+usd(PRICE)+'</td><td>'+usd(ctx.bal)+'</td><td>✓ dato recibido</td></tr>')}
+       else{rows.push('<tr><td>'+i+'</td><td>—</td><td>'+usd(ctx.bal)+'</td><td>✗ saldo insuficiente: el agente no puede firmar</td></tr>')}
+       api.clearRes();api.res('<table class="led"><thead><tr><th>Consulta</th><th>Pago (USDC)</th><th>Saldo después</th><th>Resultado</th></tr></thead><tbody>'+rows.join("")+'</tbody></table>');await wait(160)}
+     ctx.ok=okCount;
+     api.res(okCount<ctx.n?'<div class="msg bad">El agente obtuvo '+okCount+' de '+ctx.n+' cotizaciones: el límite ha sido el saldo que fijó Alice. Nadie le ha preguntado.</div>':'<div class="msg ok">El agente obtuvo las '+ctx.n+' cotizaciones y gastó '+usd(ctx.start-ctx.bal)+' USDC.</div>');
+     ui.appendChild(api.btn("Continuar",function(b2){markUsed(b2);api.finish(okCount+" de "+ctx.n+" consultas pagadas · quedan "+usd(ctx.bal)+" USDC")}))}))}},
+{n:"9",band:"Después",al:"act",actor:"Alice",t:"Alice revisa",
+ que:"Alice ve los movimientos del monedero: cuántas consultas ha pagado el agente y a quién. Elige qué hace.",
+ alt:"Revisa, pero con menos herramientas: no tiene un banco al que reclamar.",
+ tec:"Historial público de la blockchain.",
+ jur:"Sin custodia, el pago queda fuera de la PSD2: no rigen los arts. 44 y 45 RDL 19/2018. Solo cabe reclamar al vendedor o al proveedor del agente, por vía contractual.",
+ ui:function(ui,ctx,api){
+   var opts=[["Todo correcto","Alice da la tarea por cumplida.","Conforme"],
+             ["Una consulta no me sirvió: quiero el dinero","No hay contracargo ni devolución por operación no autorizada: el pago fue firme al liquidarse y no hay proveedor de servicios de pago. Alice solo puede pedir la devolución al proveedor de datos, o reclamar al proveedor del agente si este actuó mal, por vía contractual.","Reclamación contractual"],
+             [ctx.mode==="permiso"?"Revocar el permiso de gasto":"Retirar los fondos del monedero",ctx.mode==="permiso"?"Alice revoca el permiso en el contrato: desde ese momento, el agente ya no puede gastar.":"Alice traslada el saldo restante a su propio monedero: el agente se queda sin capacidad de pago.","Fondos retirados o permiso revocado"]];
+   opts.forEach(function(o,j){ui.appendChild(api.btn(o[0],function(b){[].forEach.call(ui.querySelectorAll("button"),function(x){x.disabled=true});b.setAttribute("data-used","1");api.res('<div class="msg '+(j===1?"bad":"ok")+'">'+o[1]+'</div>');api.finish(o[2])},j===0?"primary":""));ui.appendChild(document.createTextNode(" "))})}}
+];
+
+/* ---------- arranque ---------- */
+function start(){
+  if(!CRYPTO){["c1","c2"].forEach(function(p){$("flow-"+p).innerHTML='<div class="msg bad">Este navegador no permite la criptografía necesaria para el recorrido (la página debe abrirse por HTTPS). Puedes ver la pila completa debajo.</div>'});return}
+  STATE.c1=new Path("c1",C1,function(){return {}});
+  STATE.c2=new Path("c2",C2,function(){return {}});
+}
+[].forEach.call(document.querySelectorAll("[data-reset]"),function(b){b.addEventListener("click",function(){var p=STATE[b.dataset.reset];if(p)p.reset()})});
+[].forEach.call(document.querySelectorAll("[data-auto]"),function(b){b.addEventListener("click",function(){var p=STATE[b.dataset.auto];if(p&&!p.auto)p.autorun()})});
+
+/* pestañas */
+var panels=[].slice.call(document.querySelectorAll("[data-panel]")),tabs=[].slice.call(document.querySelectorAll("[data-tab]"));
+function owner(id){if(!id)return "camino-1";if(panels.some(function(p){return p.id===id}))return id;var e=document.getElementById(id);if(!e)return "camino-1";var p=e.closest("[data-panel]");return p?p.id:"camino-1"}
+function show(){var h=decodeURIComponent((location.hash||"").slice(1)),cur=owner(h);panels.forEach(function(p){p.hidden=(p.id!==cur)});tabs.forEach(function(t){t.setAttribute("aria-current",t.dataset.tab===cur?"true":"false")})}
+window.addEventListener("hashchange",show);show();start();
+})();
+</script>
+
+</body>
+</html>
