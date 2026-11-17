@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Quién hace qué en cada uno de los dos caminos del pago agéntico: el permiso del banco y el pago como permiso (HTTP 402).">
+<title>Los dos caminos del pago agéntico</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap">
+<style>
+/* Layout: dos pilas verticales (una por camino) con una columna fija «Alice» a la derecha de cada paso; vista de comparación a dos columnas. */
+:root{
+--bg:#f4f5f7;--paper:#ffffff;--ink:#18202b;--muted:#586374;--line:#dde1e7;--code:#eef1f5;--accent:#0f5f8c;
+--alice:#b23f17;--alice-bg:#fbe9e1;--some:#8a5a00;--some-bg:#fbf1dc;--no:#7f8896;--no-bg:#f0f2f5;
+--f-display:"Newsreader",Georgia,"Times New Roman",serif;--f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+--bg:#11161d;--paper:#18202a;--ink:#e7ecf2;--muted:#9ba7b6;--line:#2b3542;--code:#1f2934;--accent:#6cb6e3;
+--alice:#f2a585;--alice-bg:#3c2016;--some:#e5c27a;--some-bg:#33290f;--no:#7d8897;--no-bg:#1d252f;color-scheme:dark}}
+:root[data-theme="dark"]{
+--bg:#11161d;--paper:#18202a;--ink:#e7ecf2;--muted:#9ba7b6;--line:#2b3542;--code:#1f2934;--accent:#6cb6e3;
+--alice:#f2a585;--alice-bg:#3c2016;--some:#e5c27a;--some-bg:#33290f;--no:#7d8897;--no-bg:#1d252f;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.6;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 64px}
+.wrap{max-width:1080px;margin:0 auto}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:600;margin:0 0 8px}
+h1{font-family:var(--f-display);font-weight:600;font-size:clamp(30px,4.6vw,44px);line-height:1.1;margin:0 0 12px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:26px;line-height:1.2;margin:0 0 6px;text-wrap:balance}
+h3{margin:0}
+h4{font-size:18px;font-weight:600;margin:4px 0 6px;line-height:1.3;text-wrap:balance}
+p{margin:0 0 8px}
+.intro{color:var(--muted);font-size:17px;max-width:68ch}
+code{font-family:var(--f-mono);font-size:.86em;background:var(--code);padding:1px 5px;border-radius:4px}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin:18px 0 8px;font-size:14px;color:var(--muted)}
+.legend .pill{margin-right:6px}
+.pill{display:inline-block;font-size:12.5px;font-weight:600;padding:2px 10px;border-radius:999px;white-space:nowrap;border:1.5px solid transparent}
+.s-act{--c:var(--alice);--cb:var(--alice-bg)}.s-see{--c:var(--alice);--cb:transparent}.s-some{--c:var(--some);--cb:var(--some-bg)}.s-no{--c:var(--no);--cb:var(--no-bg)}
+.pill.s-act{background:var(--alice);color:var(--paper)}.pill.s-see{color:var(--alice);border-color:var(--alice)}.pill.s-some{color:var(--some);border-color:var(--some);background:var(--some-bg)}.pill.s-no{color:var(--no);background:var(--no-bg)}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 22px;border-bottom:1px solid var(--line);padding-bottom:12px}
+.tabs a{font-size:14.5px;font-weight:500;text-decoration:none;color:var(--muted);padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--paper)}
+.tabs a:hover{color:var(--ink);border-color:var(--accent)}
+.tabs a[aria-current="true"]{color:var(--paper);background:var(--accent);border-color:var(--accent)}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.panel{margin-bottom:48px}
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;margin:14px 0 16px}
+.sum div{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.sum b{display:block;font-size:13px;color:var(--muted);font-weight:500;margin-bottom:2px}
+.sum span{font-size:15px}
+.strip{list-style:none;margin:0 0 20px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.dot{display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;font-size:13px;font-weight:600;text-decoration:none;border:1.5px solid var(--c);color:var(--c);background:var(--cb)}
+.dot.s-act{background:var(--alice);color:var(--paper)}
+.band{margin:0 0 18px}
+.band-t{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 10px;padding-top:6px}
+.band-pago .band-t{color:var(--no)}
+.stack{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.step{display:grid;grid-template-columns:minmax(0,1fr);background:var(--paper);border:1px solid var(--line);border-radius:12px;overflow:hidden;scroll-margin-top:16px}
+@media (min-width:760px){.step{grid-template-columns:minmax(0,1fr) 270px}}
+.step:target{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.main{padding:14px 18px;min-width:0}
+.head{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.num{font-family:var(--f-mono);font-size:13px;font-weight:500;color:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:0 7px}
+.actor{font-size:13px;color:var(--muted)}
+.chk{font-size:14.5px}
+.k{display:block;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:1px}
+details{margin-top:6px;font-size:14.5px}
+details summary{cursor:pointer;color:var(--accent);font-size:13.5px;font-weight:500}
+details p{margin-top:8px}
+.alice{padding:14px 18px;background:var(--cb);border-top:1px solid var(--line)}
+@media (min-width:760px){.alice{border-top:0;border-left:3px solid var(--c)}}
+.alice.s-see{border-left-style:dashed}
+.alice .who{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--c)}
+.alice .state{display:block;font-family:var(--f-display);font-size:22px;font-weight:600;color:var(--c);line-height:1.2;margin:2px 0 4px}
+.alice.s-no .state{font-family:var(--f-body);font-size:16px}
+.alice p{font-size:14.5px;margin:0}
+.alice.s-no p{color:var(--muted)}
+.cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px;margin:14px 0 22px}
+.ccol{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.ccol h3{font-family:var(--f-display);font-size:20px;font-weight:600;margin-bottom:6px}
+.cband{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:12px 0 4px}
+.clist{list-style:none;margin:0;padding:0}
+.clist li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.clist li:last-child{border-bottom:0}
+.cn{font-family:var(--f-mono);font-size:12.5px;color:var(--accent)}
+.tw{overflow-x:auto;background:var(--paper);border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:14.5px}
+th,td{text-align:left;vertical-align:top;padding:10px 14px;border-bottom:1px solid var(--line)}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:600;width:22%}
+.note{font-size:13.5px;color:var(--muted);max-width:80ch}
+footer{border-top:1px solid var(--line);margin-top:32px;padding-top:16px}
+</style>
+<style>body{margin:0}</style>
+</head>
+<body>
+
+<div class="wrap">
+<p class="eyebrow">Pagos agénticos · los dos caminos</p>
+<h1>Quién hace qué cuando paga un agente</h1>
+<p class="intro">Alice quiere que su agente, AgenteBob, compre por ella. Hay dos caminos para hacerlo: el banco le concede un permiso (el modelo de la economía delegada) o el agente paga cada recurso con su propio monedero (el modelo del código HTTP 402). Cada paso de la pila indica qué ocurre, qué se comprueba y, en la columna de la derecha, qué está haciendo Alice en ese momento.</p>
+
+<div class="legend" aria-label="Qué hace Alice"><span><span class="pill s-act">Actúa</span>decide o firma</span><span><span class="pill s-see">Solo ve</span>está delante, pero no decide</span><span><span class="pill s-some">A veces</span>solo si el banco lo pide</span><span><span class="pill s-no">No está</span>todo ocurre sin ella</span></div>
+
+<nav class="tabs" aria-label="Caminos">
+<a href="#camino-1" data-tab="camino-1">1 · El permiso</a>
+<a href="#camino-2" data-tab="camino-2">2 · El pago como permiso (402)</a>
+<a href="#comparar" data-tab="comparar">Los dos, lado a lado</a>
+</nav>
+
+<section class="panel" id="camino-1" data-panel>
+<h2>Primer camino: el permiso</h2>
+<p class="intro">Economía delegada. El banco de Alice autentica a Alice, recoge su consentimiento y entrega al agente un permiso limitado. El pago viaja por la red de tarjetas.</p>
+<div class="sum">
+<div><b>Cuándo decide Alice</b><span>Antes de comprar: da la instrucción y consiente ante su banco.</span></div>
+<div><b>En cada pago</b><span>No está. Solo confirma si su banco lo exige.</span></div>
+<div><b>Dónde está el límite</b><span>En el permiso que firma el banco (200 €) y en el mandato de Alice (120 €).</span></div>
+<div><b>Si algo sale mal</b><span>Reclama a su banco, con las protecciones de la PSD2.</span></div>
+</div>
+<ol class="strip" aria-label="Resumen: qué hace Alice en cada paso"><li><a href="#c1-1" class="dot s-no" title="Paso 1: No está"><span>1</span></a></li><li><a href="#c1-2" class="dot s-act" title="Paso 2: Actúa"><span>2</span></a></li><li><a href="#c1-3" class="dot s-see" title="Paso 3: Solo ve"><span>3</span></a></li><li><a href="#c1-4" class="dot s-act" title="Paso 4: Actúa"><span>4</span></a></li><li><a href="#c1-5" class="dot s-no" title="Paso 5: No está"><span>5</span></a></li><li><a href="#c1-6" class="dot s-no" title="Paso 6: No está"><span>6</span></a></li><li><a href="#c1-7" class="dot s-no" title="Paso 7: No está"><span>7</span></a></li><li><a href="#c1-8" class="dot s-no" title="Paso 8: No está"><span>8</span></a></li><li><a href="#c1-9" class="dot s-some" title="Paso 9: A veces"><span>9</span></a></li><li><a href="#c1-10" class="dot s-no" title="Paso 10: No está"><span>10</span></a></li><li><a href="#c1-11" class="dot s-act" title="Paso 11: Actúa"><span>11</span></a></li></ol>
+<section class="band band-antes"><h3 class="band-t">Antes · una sola vez</h3><ol class="stack"><li class="step" id="c1-1">
+<div class="main"><div class="head"><span class="num">1</span><span class="actor">Proveedor del agente → banco</span></div>
+<h4>El agente se da de alta en el banco</h4><p>El proveedor de AgenteBob lo registra en el banco de Alice: le asigna un identificador y deja guardada su clave pública, para poder reconocer sus firmas más adelante.</p><p class="chk"><span class="k">Se comprueba</span>Según el banco, quién es el proveedor del agente. No hay ningún permiso todavía.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>Registro del cliente OAuth: <code>client_id</code>, dirección de vuelta y clave pública (<code>jwks</code>). Paso 0 del simulador.</p><p><span class="k">Lectura jurídica</span>Identidad técnica del agente ante ese banco. No es un permiso ni acredita quién responde del agente.</p></details></div>
+<div class="alice s-no"><span class="who">Alice</span><span class="state">No está</span><p>No interviene. Ni siquiera lo ve: es una relación entre el proveedor del agente y el banco.</p></div></li><li class="step" id="c1-2">
+<div class="main"><div class="head"><span class="num">2</span><span class="actor">Alice → AgenteBob</span></div>
+<h4>Alice da la instrucción</h4><p>Alice le pide a su agente lo que quiere: «unas zapatillas de running, talla 42, por un máximo de 120 €».</p><p class="chk"><span class="k">Se comprueba</span>Nada todavía: es una conversación entre Alice y su agente.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>La instrucción en lenguaje natural se convertirá después en un mandato firmado.</p><p><span class="k">Lectura jurídica</span>Encargo de un mandato (art. 1709 CC): Alice fija el objeto y los límites.</p></details></div>
+<div class="alice s-act"><span class="who">Alice</span><span class="state">Actúa</span><p>Encarga la compra y fija lo que quiere y hasta cuánto.</p></div></li><li class="step" id="c1-3">
+<div class="main"><div class="head"><span class="num">3</span><span class="actor">AgenteBob → banco de Alice</span></div>
+<h4>El agente la envía a su banco</h4><p>AgenteBob prepara un secreto que se guarda y abre la web o la app del banco de Alice con lo que pide: «pagar hasta 200 € durante un mes».</p><p class="chk"><span class="k">Se comprueba</span>El banco comprueba que el agente está registrado y que la dirección de vuelta es la suya.</p>
+<details><summary>Lo técnico</summary><p><span class="k">Técnica</span>Petición de autorización OAuth con PKCE: <code>client_id</code>, <code>scope</code>, <code>state</code> y huella del secreto (<code>code_challenge</code>). Pasos 1.1 y 1.2 del simulador.</p></details></div>
+<div class="alice s-see"><span class="who">Alice</span><span class="state">Solo ve</span><p>Se encuentra en la web o la app de su banco, con la petición del agente a la vista.</p></div></li><li class="step" id="c1-4">
+<div class="main"><div class="head"><span class="num">4</span><span class="actor">Alice → banco de Alice</span></div>
+<h4>Alice se identifica y consiente</h4><p>Alice se identifica ante su banco con dos factores (por ejemplo, el móvil y la huella), acepta el permiso de pagar hasta 200 € y firma el mandato: zapatillas de running, talla 42, hasta 120 €, válido hasta el 30 de noviembre.</p><p class="chk"><span class="k">Se comprueba</span>El banco aplica la autenticación reforzada: comprueba que es Alice.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>Autenticación reforzada (SCA), pantalla de consentimiento y firma del mandato de intención con la clave del dispositivo de Alice.</p><p><span class="k">Lectura jurídica</span>Consentimiento a una serie de operaciones (art. 36 RDL 19/2018) y SCA (art. 68). Es el otorgamiento del poder.</p></details></div>
+<div class="alice s-act"><span class="who">Alice</span><span class="state">Actúa</span><p>Es el momento clave: se identifica, decide qué puede hacer el agente y lo firma. Aquí presta su consentimiento.</p></div></li><li class="step" id="c1-5">
+<div class="main"><div class="head"><span class="num">5</span><span class="actor">Banco de Alice</span></div>
+<h4>El banco comprueba al agente</h4><p>El agente vuelve al banco, esta vez por un canal directo, para recoger el permiso. El banco comprueba que es quien dice ser y que es el mismo que hizo la petición.</p><p class="chk"><span class="k">Se comprueba</span>La firma del agente, que el código de un solo uso es válido y que el agente conoce el secreto que preparó en el paso 3.</p>
+<details><summary>Lo técnico</summary><p><span class="k">Técnica</span>Aserción firmada (<code>private_key_jwt</code>), código de autorización, PKCE y prueba DPoP. Comprobaciones A1 a A4 del simulador.</p></details></div>
+<div class="alice s-no"><span class="who">Alice</span><span class="state">No está</span><p>Ya ha vuelto a la conversación con su agente.</p></div></li><li class="step" id="c1-6">
+<div class="main"><div class="head"><span class="num">6</span><span class="actor">Banco de Alice → AgenteBob</span></div>
+<h4>El banco entrega el permiso</h4><p>El banco entrega al agente un permiso firmado, que solo vale en sus manos, y una credencial sustitutiva de la tarjeta (token de red) que solo funciona para ese agente y dentro de los límites.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>Token de acceso firmado por el banco y vinculado a la clave del agente; token de red. Comprobación A5 del simulador.</p><p><span class="k">Lectura jurídica</span>El token es un título de legitimación nominativo: da al tercero «conocimiento suficiente de los poderes» (art. 1725 CC).</p></details></div>
+<div class="alice s-no"><span class="who">Alice</span><span class="state">No está</span><p>Desde ahora puede revocar el permiso en cualquier momento desde su banco.</p></div></li></ol></section><section class="band band-pago"><h3 class="band-t">En cada pago · Alice no está</h3><ol class="stack"><li class="step" id="c1-7">
+<div class="main"><div class="head"><span class="num">7</span><span class="actor">AgenteBob → comercio</span></div>
+<h4>El agente encuentra la oferta y paga</h4><p>AgenteBob encuentra unas zapatillas por 119,90 € y envía al comercio una petición de pago con cuatro pruebas: su propia firma, el permiso del banco, la prueba de que ese permiso es suyo y el mandato firmado por Alice.</p>
+<details><summary>Lo técnico</summary><p><span class="k">Técnica</span>Firma Web Bot Auth, token de acceso, prueba DPoP y mandato. Paso 3.1 del simulador.</p></details></div>
+<div class="alice s-no"><span class="who">Alice</span><span class="state">No está</span><p>No recibe ninguna pregunta.</p></div></li><li class="step" id="c1-8">
+<div class="main"><div class="head"><span class="num">8</span><span class="actor">Comercio</span></div>
+<h4>El comercio lo comprueba todo</h4><p>El comercio verifica, por este orden, quién llama, qué trae, si es suyo y si cabe en lo autorizado.</p><p class="chk"><span class="k">Se comprueba</span>Que el agente es conocido, que el permiso es auténtico y está vigente, que lo presenta su titular, que el mandato de Alice es auténtico y que 119,90 € cabe en los límites (120 € del mandato y 200 € del permiso).</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>Comprobaciones B1 a B6 del simulador.</p><p><span class="k">Lectura jurídica</span>Si la compra excediera los límites, se rechaza: el mandatario no puede traspasarlos (art. 1714 CC).</p></details></div>
+<div class="alice s-no"><span class="who">Alice</span><span class="state">No está</span><p>Todo ocurre entre máquinas.</p></div></li><li class="step" id="c1-9">
+<div class="main"><div class="head"><span class="num">9</span><span class="actor">Red de tarjetas → banco de Alice</span></div>
+<h4>La red y el banco autorizan</h4><p>La red sustituye la credencial del agente por la tarjeta real. El banco de Alice ve que paga un agente y decide aprobar, denegar o pedir una confirmación.</p><p class="chk"><span class="k">Se comprueba</span>Las reglas de riesgo del banco y, si procede, una autenticación adicional.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>Autorización ordinaria de tarjeta con el mandato de pago (agente presente, usuario ausente).</p><p><span class="k">Lectura jurídica</span>Encaje de la SCA con el ordenante ausente: operaciones iniciadas por el comercio o exención de importe reducido. Cuestión abierta.</p></details></div>
+<div class="alice s-some"><span class="who">Alice</span><span class="state">A veces</span><p>Normalmente, nada. Solo si el banco lo exige, recibe un aviso en el móvil para confirmar la compra.</p></div></li><li class="step" id="c1-10">
+<div class="main"><div class="head"><span class="num">10</span><span class="actor">Bancos</span></div>
+<h4>Se liquida el pago</h4><p>Los bancos liquidan entre sí, normalmente al día siguiente, y el cargo aparece en la cuenta de Alice.</p>
+<details><summary>Lo técnico</summary><p><span class="k">Técnica</span>Liquidación en la red de tarjetas (algunas redes ya liquidan con bancos en stablecoins, sin que el titular lo note).</p></details></div>
+<div class="alice s-no"><span class="who">Alice</span><span class="state">No está</span><p>Todo ocurre entre máquinas.</p></div></li></ol></section><section class="band band-despues"><h3 class="band-t">Después</h3><ol class="stack"><li class="step" id="c1-11">
+<div class="main"><div class="head"><span class="num">11</span><span class="actor">Alice</span></div>
+<h4>Alice revisa y, si hace falta, reclama</h4><p>Alice ve el cargo en su extracto. Si no lo reconoce, puede reclamarlo; si el permiso ya no le interesa, puede revocarlo.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>Revocación del token desde el banco; reclamación por el canal del emisor.</p><p><span class="k">Lectura jurídica</span>Operación no autorizada: devolución inmediata (art. 45 RDL 19/2018), con la prueba a cargo del banco (art. 44). Importe superior al esperado sin importe exacto autorizado: devolución en ocho semanas (arts. 48 y 49).</p></details></div>
+<div class="alice s-act"><span class="who">Alice</span><span class="state">Actúa</span><p>Revisa el cargo y conserva todas las herramientas del Derecho de pagos.</p></div></li></ol></section>
+</section>
+
+<section class="panel" id="camino-2" data-panel>
+<h2>Segundo camino: el pago como permiso (HTTP 402)</h2>
+<p class="intro">Economía de máquinas. No hay banco que conceda permiso: el servidor pide un pago por cada recurso y el agente paga con su monedero. El ejemplo sigue x402 con monedero propio, sin custodia; las diferencias de L402 se indican en «Lo técnico».</p>
+<div class="sum">
+<div><b>Cuándo decide Alice</b><span>Antes de comprar: dota de fondos al agente y le da la instrucción.</span></div>
+<div><b>En cada pago</b><span>No está, y nadie le pregunta: decide el agente.</span></div>
+<div><b>Dónde está el límite</b><span>En el saldo del monedero o en el permiso de gasto aplicado por contrato.</span></div>
+<div><b>Si algo sale mal</b><span>El pago es irrevocable. Sin custodia, no hay banco al que reclamar.</span></div>
+</div>
+<ol class="strip" aria-label="Resumen: qué hace Alice en cada paso"><li><a href="#c2-1" class="dot s-act" title="Paso 1: Actúa"><span>1</span></a></li><li><a href="#c2-2" class="dot s-act" title="Paso 2: Actúa"><span>2</span></a></li><li><a href="#c2-3" class="dot s-no" title="Paso 3: No está"><span>3</span></a></li><li><a href="#c2-4" class="dot s-no" title="Paso 4: No está"><span>4</span></a></li><li><a href="#c2-5" class="dot s-no" title="Paso 5: No está"><span>5</span></a></li><li><a href="#c2-6" class="dot s-no" title="Paso 6: No está"><span>6</span></a></li><li><a href="#c2-7" class="dot s-no" title="Paso 7: No está"><span>7</span></a></li><li><a href="#c2-8" class="dot s-no" title="Paso 8: No está"><span>8</span></a></li><li><a href="#c2-9" class="dot s-act" title="Paso 9: Actúa"><span>9</span></a></li></ol>
+<section class="band band-antes"><h3 class="band-t">Antes · una sola vez</h3><ol class="stack"><li class="step" id="c2-1">
+<div class="main"><div class="head"><span class="num">1</span><span class="actor">Alice → monedero del agente</span></div>
+<h4>Alice dota de fondos al agente</h4><p>Alice carga el monedero de AgenteBob con stablecoins (por ejemplo, 20 € en USDC o EURC, que compra en una plataforma que la identifica) o le concede un permiso de gasto con tope: 20 € al mes.</p><p class="chk"><span class="k">Se comprueba</span>La plataforma donde compra las stablecoins aplica KYC. En el permiso de gasto, el límite lo aplica un contrato en la blockchain.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>Monedero propio sin custodia, o permiso de gasto aplicado por contrato inteligente (ERC-7715 / ERC-7710, <i>Spend Permissions</i>).</p><p><span class="k">Lectura jurídica</span>Mandato con provisión de fondos, como la caja fija de un empleado. Sin custodia, no es el consentimiento del art. 36 RDL 19/2018: no hay proveedor de servicios de pago.</p></details></div>
+<div class="alice s-act"><span class="who">Alice</span><span class="state">Actúa</span><p>Es el momento clave: decide cuánto puede gastar el agente. Lo que no esté en el monedero no se puede gastar.</p></div></li><li class="step" id="c2-2">
+<div class="main"><div class="head"><span class="num">2</span><span class="actor">Alice → AgenteBob</span></div>
+<h4>Alice da la instrucción</h4><p>Alice le encarga una tarea: «consígueme las cotizaciones de cierre de hoy». El agente sabe que algunas fuentes cobran por consulta.</p><p class="chk"><span class="k">Se comprueba</span>Nada todavía.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>La instrucción no se firma: el límite está en los fondos o en el permiso de gasto.</p><p><span class="k">Lectura jurídica</span>Encargo del mandato. Las instrucciones son más abiertas que en el primer camino.</p></details></div>
+<div class="alice s-act"><span class="who">Alice</span><span class="state">Actúa</span><p>Encarga la tarea. No dice a quién pagar ni cuánto por cada consulta.</p></div></li></ol></section><section class="band band-pago"><h3 class="band-t">En cada pago · Alice no está</h3><ol class="stack"><li class="step" id="c2-3">
+<div class="main"><div class="head"><span class="num">3</span><span class="actor">AgenteBob → servidor</span></div>
+<h4>El agente pide el dato</h4><p>AgenteBob hace una petición normal a la API de un proveedor de datos con el que nunca ha tratado.</p>
+<details><summary>Lo técnico</summary><p><span class="k">Técnica</span>Petición HTTP ordinaria. No hay registro previo ni cuenta.</p></details></div>
+<div class="alice s-no"><span class="who">Alice</span><span class="state">No está</span><p>Todo ocurre entre máquinas.</p></div></li><li class="step" id="c2-4">
+<div class="main"><div class="head"><span class="num">4</span><span class="actor">Servidor → AgenteBob</span></div>
+<h4>El servidor responde: «Pago requerido»</h4><p>El servidor contesta con el código 402 y las condiciones: 0,05 USDC por la consulta, en tal red y a tal destinatario.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>Respuesta HTTP 402 con <code>PAYMENT-REQUIRED</code> (x402). En L402: una factura de Lightning y un token (<i>macaroon</i>).</p><p><span class="k">Lectura jurídica</span>Oferta de contrato automatizada: precio y condiciones las fija el servidor.</p></details></div>
+<div class="alice s-no"><span class="who">Alice</span><span class="state">No está</span><p>Todo ocurre entre máquinas.</p></div></li><li class="step" id="c2-5">
+<div class="main"><div class="head"><span class="num">5</span><span class="actor">AgenteBob</span></div>
+<h4>El agente decide y firma la orden</h4><p>AgenteBob comprueba que el precio cabe en sus fondos o en su permiso y firma una orden de transferencia por ese importe exacto y a ese destinatario, válida unos minutos y con un número único.</p><p class="chk"><span class="k">Se comprueba</span>El propio agente decide si paga. Nadie le pregunta.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>Firma EIP-3009 (<code>transferWithAuthorization</code>) enviada en <code>PAYMENT-SIGNATURE</code>. En L402: el agente paga la factura y obtiene un secreto (preimagen).</p><p><span class="k">Lectura jurídica</span>Aceptación de la oferta por el agente. Si elige mal, es una cuestión de mandato (arts. 1719 y 1726 CC), no de pagos.</p></details></div>
+<div class="alice s-no"><span class="who">Alice</span><span class="state">No está</span><p>El agente decide por su cuenta a quién paga y cuánto, dentro de lo que tiene.</p></div></li><li class="step" id="c2-6">
+<div class="main"><div class="head"><span class="num">6</span><span class="actor">Intermediario</span></div>
+<h4>Se comprueba la orden</h4><p>Un intermediario (o el propio servidor) revisa la orden antes de enviarla a la blockchain.</p><p class="chk"><span class="k">Se comprueba</span>Que la firma es válida, que el importe y el destinatario coinciden con lo pedido, que está en plazo y que el número único no se ha usado. Algunos intermediarios cotejan además listas de sanciones.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span><i>Facilitator</i> de x402: verifica y liquida. En L402, el servidor comprueba que el SHA-256 del secreto coincide con la huella guardada en el token: el mismo mecanismo que PKCE.</p><p><span class="k">Lectura jurídica</span>Si el intermediario no custodia fondos, su encaje como proveedor de servicios de pago es dudoso.</p></details></div>
+<div class="alice s-no"><span class="who">Alice</span><span class="state">No está</span><p>Todo ocurre entre máquinas.</p></div></li><li class="step" id="c2-7">
+<div class="main"><div class="head"><span class="num">7</span><span class="actor">Blockchain</span></div>
+<h4>La blockchain liquida</h4><p>La red comprueba que hay saldo y mueve los fondos en segundos. El pago es firme e irrevocable.</p><p class="chk"><span class="k">Se comprueba</span>El saldo disponible.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>Liquidación en cadena (por ejemplo, Base o Solana). En L402, en la red Lightning.</p><p><span class="k">Lectura jurídica</span>Sin contracargo ni devolución: no hay a quién pedirla.</p></details></div>
+<div class="alice s-no"><span class="who">Alice</span><span class="state">No está</span><p>Todo ocurre entre máquinas.</p></div></li><li class="step" id="c2-8">
+<div class="main"><div class="head"><span class="num">8</span><span class="actor">Servidor → AgenteBob</span></div>
+<h4>El servidor entrega el dato</h4><p>Confirmado el pago, el servidor responde con las cotizaciones. Pagar y recibir ocurren en la misma petición.</p>
+<details><summary>Lo técnico</summary><p><span class="k">Técnica</span>Respuesta con <code>PAYMENT-RESPONSE</code> (x402). En L402, el token con el secreto sirve para volver a acceder.</p></details></div>
+<div class="alice s-no"><span class="who">Alice</span><span class="state">No está</span><p>Todo ocurre entre máquinas.</p></div></li></ol></section><section class="band band-despues"><h3 class="band-t">Después</h3><ol class="stack"><li class="step" id="c2-9">
+<div class="main"><div class="head"><span class="num">9</span><span class="actor">Alice</span></div>
+<h4>Alice revisa</h4><p>Alice ve los movimientos en el monedero del agente: cuántas consultas ha pagado y a quién.</p>
+<details><summary>Lo técnico y lo jurídico</summary><p><span class="k">Técnica</span>Historial público de la blockchain.</p><p><span class="k">Lectura jurídica</span>Sin custodia, el pago queda fuera de la PSD2: no rigen los arts. 44 y 45 RDL 19/2018. Solo cabe reclamar al vendedor o al proveedor del agente, por vía contractual.</p></details></div>
+<div class="alice s-act"><span class="who">Alice</span><span class="state">Actúa</span><p>Revisa, pero con menos herramientas: no tiene un banco al que reclamar.</p></div></li></ol></section>
+</section>
+
+<section class="panel" id="comparar" data-panel>
+<h2>Los dos caminos, lado a lado</h2>
+<p class="intro">En los dos, Alice decide antes y desaparece durante el pago. La diferencia está en quién garantiza el límite y en qué le queda a Alice si algo sale mal.</p>
+<div class="cmp"><div class="ccol"><h3>Primer camino: el permiso</h3><p class="cband">Antes · una sola vez</p><ul class="clist"><li><span class="cn">1</span><span class="ct">El agente se da de alta en el banco</span><span class="pill s-no">No está</span></li><li><span class="cn">2</span><span class="ct">Alice da la instrucción</span><span class="pill s-act">Actúa</span></li><li><span class="cn">3</span><span class="ct">El agente la envía a su banco</span><span class="pill s-see">Solo ve</span></li><li><span class="cn">4</span><span class="ct">Alice se identifica y consiente</span><span class="pill s-act">Actúa</span></li><li><span class="cn">5</span><span class="ct">El banco comprueba al agente</span><span class="pill s-no">No está</span></li><li><span class="cn">6</span><span class="ct">El banco entrega el permiso</span><span class="pill s-no">No está</span></li></ul><p class="cband">En cada pago · Alice no está</p><ul class="clist"><li><span class="cn">7</span><span class="ct">El agente encuentra la oferta y paga</span><span class="pill s-no">No está</span></li><li><span class="cn">8</span><span class="ct">El comercio lo comprueba todo</span><span class="pill s-no">No está</span></li><li><span class="cn">9</span><span class="ct">La red y el banco autorizan</span><span class="pill s-some">A veces</span></li><li><span class="cn">10</span><span class="ct">Se liquida el pago</span><span class="pill s-no">No está</span></li></ul><p class="cband">Después</p><ul class="clist"><li><span class="cn">11</span><span class="ct">Alice revisa y, si hace falta, reclama</span><span class="pill s-act">Actúa</span></li></ul></div><div class="ccol"><h3>Segundo camino: el pago como permiso</h3><p class="cband">Antes · una sola vez</p><ul class="clist"><li><span class="cn">1</span><span class="ct">Alice dota de fondos al agente</span><span class="pill s-act">Actúa</span></li><li><span class="cn">2</span><span class="ct">Alice da la instrucción</span><span class="pill s-act">Actúa</span></li></ul><p class="cband">En cada pago · Alice no está</p><ul class="clist"><li><span class="cn">3</span><span class="ct">El agente pide el dato</span><span class="pill s-no">No está</span></li><li><span class="cn">4</span><span class="ct">El servidor responde: «Pago requerido»</span><span class="pill s-no">No está</span></li><li><span class="cn">5</span><span class="ct">El agente decide y firma la orden</span><span class="pill s-no">No está</span></li><li><span class="cn">6</span><span class="ct">Se comprueba la orden</span><span class="pill s-no">No está</span></li><li><span class="cn">7</span><span class="ct">La blockchain liquida</span><span class="pill s-no">No está</span></li><li><span class="cn">8</span><span class="ct">El servidor entrega el dato</span><span class="pill s-no">No está</span></li></ul><p class="cband">Después</p><ul class="clist"><li><span class="cn">9</span><span class="ct">Alice revisa</span><span class="pill s-act">Actúa</span></li></ul></div></div>
+<div class="tw"><table>
+<thead><tr><th></th><th>Primer camino: el permiso</th><th>Segundo camino: el pago como permiso</th></tr></thead>
+<tbody>
+<tr><td>Quién autoriza</td><td>Alice, ante su banco, con autenticación reforzada</td><td>Alice, al dotar de fondos al agente; en cada pago decide el agente</td></tr>
+<tr><td>Dónde está el límite</td><td>En el permiso firmado por el banco y en el mandato firmado por Alice</td><td>En el saldo del monedero o en el permiso de gasto aplicado por contrato</td></tr>
+<tr><td>Quién comprueba cada pago</td><td>El comercio, la red de tarjetas y el banco de Alice</td><td>El intermediario o el servidor, y la blockchain</td></tr>
+<tr><td>Identidad</td><td>Alice identificada por su banco (KYC); agente registrado</td><td>Ninguna en el pago; KYC solo donde Alice compra las stablecoins</td></tr>
+<tr><td>Cuándo es firme el pago</td><td>Liquidación entre bancos, normalmente al día siguiente; cabe reclamar</td><td>En segundos; irrevocable</td></tr>
+<tr><td>Si algo sale mal</td><td>Devolución de operaciones no autorizadas (art. 45 RDL 19/2018), prueba a cargo del banco (art. 44) y devolución por importe inesperado (art. 48)</td><td>Sin custodia, fuera de la PSD2: solo reclamación contractual al vendedor o al proveedor del agente</td></tr>
+<tr><td>Norma principal</td><td>PSD2 (RDL 19/2018) y Reglamento Delegado (UE) 2018/389</td><td>Mandato (Código Civil) y contrato; MiCA si hay custodia o emisión de stablecoins</td></tr>
+</tbody></table></div>
+</section>
+
+<footer>
+<p class="note">Ejemplo simplificado con fines divulgativos. Alice y AgenteBob son personajes ficticios. Para ver con criptografía real cómo se calcula y se comprueba cada firma del primer camino, consulta el simulador de la pila de verificación [ENLACE AL SIMULADOR].</p>
+<p class="note">Referencias: RFC 6749 (OAuth 2.0), RFC 7636 (PKCE), RFC 9449 (DPoP), especificación x402, especificación L402 de Lightning Labs, Real Decreto-ley 19/2018, Reglamento Delegado (UE) 2018/389, Reglamento (UE) 2023/1114 (MiCA).</p>
+</footer>
+</div>
+
+<script>
+(function(){
+var panels=[].slice.call(document.querySelectorAll('[data-panel]'));
+var tabs=[].slice.call(document.querySelectorAll('[data-tab]'));
+function owner(id){
+  if(!id)return 'camino-1';
+  if(document.getElementById(id)&&panels.some(function(p){return p.id===id}))return id;
+  var el=document.getElementById(id); if(!el)return 'camino-1';
+  var p=el.closest('[data-panel]'); return p?p.id:'camino-1';
+}
+function show(){
+  var h=decodeURIComponent((location.hash||'').slice(1)); var cur=owner(h);
+  panels.forEach(function(p){p.hidden=(p.id!==cur)});
+  tabs.forEach(function(t){t.setAttribute('aria-current',t.dataset.tab===cur?'true':'false')});
+  if(h&&h!==cur){var el=document.getElementById(h); if(el)el.scrollIntoView({block:'center'});}
+}
+window.addEventListener('hashchange',show); show();
+})();
+</script>
+
+</body>
+</html>
